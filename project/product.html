@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sportstech Products</title>
+  <link rel="icon" href="Adobe Express - file.png">
+  <link rel="stylesheet" href="product.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav>
+      <!-- Logo and Desktop Navigation -->
+      <div class="logo">
+        <img src="Screenshot 2025-08-05 183504-Picsart-AiImageEnhancer.png" alt="SportsTech" class="tittlelogo">
+      </div>
+
+      <!-- Desktop Navigation -->
+      <ul class="nav-links desktop-nav">
+        <li><a href="#" id="homeBtn">Home</a></li>
+        <li><a href="#" id="allBtn" class="active">All</a></li>
+        <li>
+          <a href="#" id="treadmillBtn">Treadmill</a>
+          <div class="dropdown">
+            <div class="dropdown-title">TREADMILLS</div>
+            <div class="dropdown-grid">
+              <div class="dropdown-item">
+                <img src="000-Sportstech-Laufband-sWalk-Plus_(1).webp" alt="sWalk Plus">
+                <span>sWalk Plus treadmill</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="8.jpg" alt="sProRun">
+                <span>sProRun treadmill</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="100-streadfoldpro.webp" alt="sTread Fold Pro">
+                <span>sTread Fold Pro treadmill</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="7.webp" alt="s12">
+                <span>s12 treadmill</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="100-Sportstech-Laufband-sTreadPro (1).jpg" alt="sTread Pro">
+                <span>sTread Pro treadmill</span>
+              </div>
+              <div class="dropdown-item">
+                <span style="color: #D92C54; font-weight: bold;">View All Treadmills →</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <a href="#" id="sbikeBtn">S-Bike</a>
+          <div class="dropdown">
+            <div class="dropdown-title">BIKES & ERGOMETER</div>
+            <div class="dropdown-grid">
+              <div class="dropdown-item">
+                <img src="bike 1.webp" alt="Sportstech sBike">
+                <span>Sportstech sBike</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="bike 2.webp" alt="sBike Lite">
+                <span>Sportstech sBike Lite</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="bike 3.webp" alt="ES600">
+                <span>ES600 recumbent ergometer</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="bike 4.webp" alt="SX200">
+                <span>SX200 speed bike</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="bike 5.webp" alt="X150">
+                <span>X150 ergometer</span>
+              </div>
+              <div class="dropdown-item">
+                <span style="color: #D92C54; font-weight: bold;">View All Bikes →</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <a href="#" id="gymStationBtn">Gym Station</a>
+          <div class="dropdown">
+            <div class="dropdown-title">STRENGTH TRAINING</div>
+            <div class="dropdown-grid">
+              <div class="dropdown-item">
+                <img src="g 1.jpg" alt="SXM200">
+                <span>SXM200 Smith Machine</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="g2.webp" alt="HGX300">
+                <span>HGX300 power station</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="g3.webp" alt="HGX200">
+                <span>HGX200 power station</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="g4.webp" alt="HGX100">
+                <span>HGX100 power station</span>
+              </div>
+              <div class="dropdown-item">
+                <img src="g5.webp" alt="PT300">
+                <span>PT300 Dip Station</span>
+              </div>
+              <div class="dropdown-item">
+                <span style="color: #D92C54; font-weight: bold;">View All Gym Equipment →</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li><a href="about.html">About us</a></li>
+      </ul>
+
+      <!-- Desktop Actions -->
+      <div class="nav-actions desktop-actions">
+        <input type="text" id="searchBar" placeholder="Search products...">
+        <button class="wishlist-button" id="wishlistIcon">
+          🤍 <span id="wishlistCount">0</span>
+        </button>
+        <button class="cart-button" id="cartIcon">
+          🛒 <span id="cartCount">0</span>
+        </button>
+      </div>
+
+      <!-- Mobile Actions (only cart and wishlist icons) -->
+      <div class="nav-actions mobile-actions">
+        <button class="wishlist-button mobile-icon" id="wishlistIconMobile">
+           🤍<span id="wishlistCountMobile">0</span>
+        </button>
+        <button class="cart-button mobile-icon" id="cartIconMobile">
+          🛒 <span id="cartCountMobile">0</span>
+        </button>
+      </div>
+
+      <!-- Mobile Menu Toggle (on right side for mobile) -->
+      <div class="mobile-menu-toggle" id="mobileMenuToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </nav>
+
+    <!-- Mobile Sidebar -->
+    <div class="mobile-sidebar" id="mobileSidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button class="close-sidebar" id="closeSidebar">&times;</button>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="sidebar-search">
+          <input type="text" id="mobileSearchBar" placeholder="Search products...">
+          <button class="search-btn">🔍</button>
+        </div>
+
+        <!-- Navigation Links -->
+        <ul class="sidebar-nav">
+          <li><a href="#" id="homeBtnMobile" onclick="closeMobileSidebar()"> Home</a></li>
+          <li><a href="#" id="allBtnMobile" onclick="closeMobileSidebar()" class="active">All Products</a></li>
+          <li><a href="#" id="treadmillBtnMobile" onclick="closeMobileSidebar()">Treadmill</a></li>
+          <li><a href="#" id="sbikeBtnMobile" onclick="closeMobileSidebar()"> S-Bike</a></li>
+          <li><a href="#" id="gymStationBtnMobile" onclick="closeMobileSidebar()"> Gym Station</a></li>
+          <li><a href="about.html" onclick="closeMobileSidebar()"> About Us</a></li>
+        </ul>
+
+        <!-- Sidebar Actions -->
+        <div class="sidebar-actions">
+          <button class="sidebar-btn wishlist-sidebar-btn" id="wishlistSidebarBtn">
+            <span class="btn-icon">🤍</span>
+            <span class="btn-text">Wishlist</span>
+            <span class="btn-count" id="wishlistCountSidebar">0</span>
+          </button>
+
+          <button class="sidebar-btn cart-sidebar-btn" id="cartSidebarBtn">
+            <span class="btn-icon">🛒</span>
+            <span class="btn-text">Cart</span>
+            <span class="btn-count" id="cartCountSidebar">0</span>
+          </button>
+
+          <button class="sidebar-btn orders-btn">
+            <span class="btn-icon">📋</span>
+            <span class="btn-text">My Orders</span>
+          </button>
+
+          <button class="sidebar-btn profile-btn">
+            <span class="btn-icon">👤</span>
+            <span class="btn-text">Profile</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </header>
+
+  <!-- Products Container -->
+  <div class="products-container">
+    <!-- Treadmill Products -->
+    <div class="product-grid" id="treadmill-section" data-category="treadmill">
+      <!-- Product 1 -->
+      <div class="product-card" data-name="sWalk Plus" data-price="212999" data-image="000-Sportstech-Laufband-sWalk-Plus_(1).webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('sWalk Plus')">♡</button>
+        <img class="imgsize" src="000-Sportstech-Laufband-sWalk-Plus_(1).webp" alt="sWalk Plus">
+        <div class="product-info">
+          <h2>sWalk Plus</h2>
+          <p class="price">₹2,12,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 2 -->
+      <div class="product-card" data-name="sProRun" data-price="203999" data-image="8.jpg">
+        <button class="wishlist-heart" onclick="toggleWishlist('sProRun')">♡</button>
+        <img class="imgsize" src="8.jpg" alt="sProRun">
+        <div class="product-info">
+          <h2>sProRun</h2>
+          <p class="price">₹2,03,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 3 -->
+      <div class="product-card" data-name="sTread Fold Pro" data-price="192999" data-image="100-streadfoldpro.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('sTread Fold Pro')">♡</button>
+        <img class="imgsize" src="100-streadfoldpro.webp" alt="sTread Fold Pro">
+        <div class="product-info">
+          <h2>sTread Fold Pro</h2>
+          <p class="price">₹1,92,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 4 -->
+      <div class="product-card" data-name="s12" data-price="187999" data-image="7.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('s12')">♡</button>
+        <img class="imgsize" src="7.webp" alt="s12">
+        <div class="product-info">
+          <h2>s12</h2>
+          <p class="price">₹1,87,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 5 -->
+      <div class="product-card" data-name="sTread Pro" data-price="172999" data-image="100-Sportstech-Laufband-sTreadPro (1).jpg">
+        <button class="wishlist-heart" onclick="toggleWishlist('sTread Pro')">♡</button>
+        <img class="imgsize" src="100-Sportstech-Laufband-sTreadPro (1).jpg" alt="sTread Pro">
+        <div class="product-info">
+          <h2>sTread Pro</h2>
+          <p class="price">₹1,72,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bike Products -->
+    <div class="product-grid" id="sbike-section" data-category="sbike">
+      <!-- bike 1 -->
+      <div class="product-card" data-name="Sportstech sBike" data-price="142999" data-image="bike 1.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('Sportstech sBike')">♡</button>
+        <img class="imgsize" src="bike 1.webp" alt="Sportstech sBike">
+        <div class="product-info">
+          <h2>Sportstech sBike</h2>
+          <p class="price">₹1,42,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 2 -->
+      <div class="product-card" data-name="Sportstech sBike Lite" data-price="89999" data-image="bike 2.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('Sportstech sBike Lite')">♡</button>
+        <img class="imgsize" src="bike 2.webp" alt="Sportstech sBike Lite">
+        <div class="product-info">
+          <h2>Sportstech sBike Lite</h2>
+          <p class="price">₹89,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 3 -->
+      <div class="product-card" data-name="ES600 recumbent ergometer" data-price="68999" data-image="bike 3.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('ES600 recumbent ergometer')">♡</button>
+        <img class="imgsize" src="bike 3.webp" alt="ES600 recumbent ergometer">
+        <div class="product-info">
+          <h2>ES600 recumbent ergometer</h2>
+          <p class="price">₹68,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 4 -->
+      <div class="product-card" data-name="SX200 speed bike" data-price="39799" data-image="bike 4.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('SX200 speed bike')">♡</button>
+        <img class="imgsize" src="bike 4.webp" alt="SX200 speed bike">
+        <div class="product-info">
+          <h2>SX200 speed bike</h2>
+          <p class="price">₹39,799</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 5 -->
+      <div class="product-card" data-name="X150 ergometer" data-price="17279" data-image="bike 5.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('X150 ergometer')">♡</button>
+        <img class="imgsize" src="bike 5.webp" alt="X150 ergometer">
+        <div class="product-info">
+          <h2>X150 ergometer</h2>
+          <p class="price">₹17,279</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gym Station Products -->
+    <div class="product-grid" id="gym-station-section" data-category="gym-station">
+      <!-- Product 1 -->
+      <div class="product-card" data-name="SXM200 Smith Machine" data-price="234000" data-image="g 1.jpg">
+        <button class="wishlist-heart" onclick="toggleWishlist('SXM200 Smith Machine')">♡</button>
+        <img class="imgsize" src="g 1.jpg" alt="SXM200 Smith Machine">
+        <div class="product-info">
+          <h2>SXM200 Smith Machine</h2>
+          <p class="price">₹2,34,000</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 2 -->
+      <div class="product-card" data-name="HGX300 power station" data-price="142999" data-image="g2.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('HGX300 power station')">♡</button>
+        <img class="imgsize" src="g2.webp" alt="HGX300 power station">
+        <div class="product-info">
+          <h2>HGX300 power station</h2>
+          <p class="price">₹1,42,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 3 -->
+      <div class="product-card" data-name="HGX200 power station" data-price="112399" data-image="g3.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('HGX200 power station')">♡</button>
+        <img class="imgsize" src="g3.webp" alt="HGX200 power station">
+        <div class="product-info">
+          <h2>HGX200 power station</h2>
+          <p class="price">₹1,12,399</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 4 -->
+      <div class="product-card" data-name="HGX100 power station" data-price="102999" data-image="g4.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('HGX100 power station')">♡</button>
+        <img class="imgsize" src="g4.webp" alt="HGX100 power station">
+        <div class="product-info">
+          <h2>HGX100 power station</h2>
+          <p class="price">₹1,02,999</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Product 5 -->
+      <div class="product-card" data-name="PT300 Dip Station" data-price="19499" data-image="g5.webp">
+        <button class="wishlist-heart" onclick="toggleWishlist('PT300 Dip Station')">♡</button>
+        <img class="imgsize" src="g5.webp" alt="PT300 Dip Station">
+        <div class="product-info">
+          <h2>PT300 Dip Station</h2>
+          <p class="price">₹19,499</p>
+        </div>
+        <div class="actions">
+          <button class="add-btn">ADD</button>
+          <div class="quantity-control hidden">
+            <button class="less">-</button>
+            <span class="qty">1</span>
+            <button class="add">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Popup -->
+  <div id="cartPopup" class="hidden">
+    <button class="close-cart-btn" onclick="closeCart()">×</button>
+    <h3 class="cart-title">Your Cart</h3>
+    <div id="cartItems"></div>
+    <div class="cart-footer">
+        <h4>Total: ₹<span id="cartTotal">0</span></h4>
+        <button class="checkout-btn">Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <!-- Wishlist Popup -->
+  <div id="wishlistPopup" class="hidden">
+    <button class="close-wishlist-btn" onclick="closeWishlist()">×</button>
+    <h3 class="wishlist-title">Your Wishlist</h3>
+    <div id="wishlistItems"></div>
+    <div class="wishlist-footer">
+        <button class="clear-wishlist-btn" onclick="clearWishlist()">Clear Wishlist</button>
+    </div>
+  </div>
+
+  <script src="product.js"></script>
+</body>
+</html>
