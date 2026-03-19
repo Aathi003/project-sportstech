@@ -11,6 +11,7 @@ import { MdBarChart, MdDashboard } from "react-icons/md";
 import { IoNotifications } from "react-icons/io5";
 import { IoIosNotifications } from "react-icons/io";
 import dashboardAPI from "services/dashboard";
+import ProfileCard from "components/card/ProfileCard";
 
 import { columnsDataCheck, columnsDataComplex } from "./variables/columnsData";
 
@@ -35,6 +36,7 @@ const Dashboard = () => {
   const [totalApprovedLeaveCount, setTotalApprovedLeaveCount] = useState(0);
   const [totalRejectedLeaveCount, setTotalRejectedLeaveCount] = useState(0);
   const [totalAllLeaveCount, setTotalAllLeaveCount] = useState(0);
+  const [availableLeaveBalance, setAvailableLeaveBalance] = useState(0);
 
   const navigate = useNavigate();
 
@@ -80,6 +82,30 @@ const Dashboard = () => {
       setTotalRejectedLeaveCount(rejected.length);
       setTotalAllLeaveCount(requests.length);
     });
+
+    // Get available leave balance
+    dashboardAPI.getAvailableLeaveBalance?.(
+      (res) => {
+        // Handle response shape: {success, available_balance}
+        let balance = 0;
+        if (typeof res === "object") {
+          if (typeof res.available_balance === "number") {
+            balance = res.available_balance;
+          } else if (typeof res.available_balance === "string") {
+            balance = Number(res.available_balance) || 0;
+          } else if (
+            res.data &&
+            typeof res.data.available_balance !== "undefined"
+          ) {
+            balance = Number(res.data.available_balance) || 0;
+          }
+        } else if (typeof res === "number") {
+          balance = res;
+        }
+        setAvailableLeaveBalance(balance);
+      },
+      () => setAvailableLeaveBalance(0)
+    );
   }, []);
 
   const [greeting, setGreeting] = useState("");
@@ -335,10 +361,14 @@ const Dashboard = () => {
         </div>
 
         {/* Total Leaves Grid - FULLY RESPONSIVE CARD STYLE */}
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+        <div
+          className={`mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5 lg:grid-cols-${
+            isSuperAdmin ? 4 : 5
+          } xl:grid-cols-${isSuperAdmin ? 4 : 5}`}
+        >
           {/* All Leaves Card - TOTAL - RESPONSIVE */}
           <div
-            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 sm:h-32 md:h-32"
+            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 dark:border dark:border-[#2d3748] dark:bg-[#23272f] dark:shadow-lg sm:h-32 md:h-32"
             onClick={() => {
               localStorage.setItem("leave_status_filter", "all");
               localStorage.removeItem("leave_date_filter");
@@ -346,21 +376,21 @@ const Dashboard = () => {
             }}
           >
             <div className="flex flex-col items-center justify-center p-3 py-2 sm:p-5 sm:py-3">
-              <div className="text-2xl font-bold text-gray-800 sm:text-3xl">
+              <div className="text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
                 {totalAllLeaveCount}
               </div>
-              <div className="text-xs text-gray-500 sm:text-sm">
+              <div className="text-xs text-gray-500 dark:text-gray-300 sm:text-sm">
                 Total Leaves
               </div>
             </div>
-            <div className="bg-blue-500 py-2 text-center text-sm font-semibold text-white sm:py-3 sm:text-base">
+            <div className="bg-blue-500 py-2 text-center text-sm font-semibold text-white dark:bg-blue-600 sm:py-3 sm:text-base">
               All Leaves
             </div>
           </div>
 
           {/* Pending Leaves Card - TOTAL - RESPONSIVE */}
           <div
-            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 sm:h-32 md:h-32"
+            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 dark:border dark:border-[#2d3748] dark:bg-[#23272f] dark:shadow-lg sm:h-32 md:h-32"
             onClick={() => {
               localStorage.setItem("leave_status_filter", "pending");
               localStorage.removeItem("leave_date_filter");
@@ -368,21 +398,21 @@ const Dashboard = () => {
             }}
           >
             <div className="flex flex-col items-center justify-center p-3 py-2 sm:p-5 sm:py-3">
-              <div className="text-2xl font-bold text-gray-800 sm:text-3xl">
+              <div className="text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
                 {totalPendingLeaveCount}
               </div>
-              <div className="text-xs text-gray-500 sm:text-sm">
+              <div className="text-xs text-gray-500 dark:text-gray-300 sm:text-sm">
                 Pending Leaves
               </div>
             </div>
-            <div className="bg-yellow-500 py-2 text-center text-sm font-semibold text-white sm:py-3 sm:text-base">
+            <div className="bg-yellow-500 py-2 text-center text-sm font-semibold text-white dark:bg-yellow-600 sm:py-3 sm:text-base">
               Leave Requests
             </div>
           </div>
 
           {/* Approved Leaves Card - TOTAL - RESPONSIVE */}
           <div
-            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 sm:h-32 md:h-32"
+            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 dark:border dark:border-[#2d3748] dark:bg-[#23272f] dark:shadow-lg sm:h-32 md:h-32"
             onClick={() => {
               localStorage.setItem("leave_status_filter", "approved");
               localStorage.removeItem("leave_date_filter");
@@ -390,21 +420,21 @@ const Dashboard = () => {
             }}
           >
             <div className="flex flex-col items-center justify-center p-3 py-2 sm:p-5 sm:py-3">
-              <div className="text-2xl font-bold text-gray-800 sm:text-3xl">
+              <div className="text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
                 {totalApprovedLeaveCount}
               </div>
-              <div className="text-xs text-gray-500 sm:text-sm">
+              <div className="text-xs text-gray-500 dark:text-gray-300 sm:text-sm">
                 Approved Leaves
               </div>
             </div>
-            <div className="bg-green-500 py-2 text-center text-sm font-semibold text-white sm:py-3 sm:text-base">
+            <div className="bg-green-500 py-2 text-center text-sm font-semibold text-white dark:bg-green-600 sm:py-3 sm:text-base">
               Approved Leaves
             </div>
           </div>
 
           {/* Rejected Leaves Card - TOTAL - RESPONSIVE */}
           <div
-            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 sm:h-32 md:h-32"
+            className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 dark:border dark:border-[#2d3748] dark:bg-[#23272f] dark:shadow-lg sm:h-32 md:h-32"
             onClick={() => {
               localStorage.setItem("leave_status_filter", "rejected");
               localStorage.removeItem("leave_date_filter");
@@ -412,45 +442,66 @@ const Dashboard = () => {
             }}
           >
             <div className="flex flex-col items-center justify-center p-3 py-2 sm:p-5 sm:py-3">
-              <div className="text-2xl font-bold text-gray-800 sm:text-3xl">
+              <div className="text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
                 {totalRejectedLeaveCount}
               </div>
-              <div className="text-xs text-gray-500 sm:text-sm">
+              <div className="text-xs text-gray-500 dark:text-gray-300 sm:text-sm">
                 Rejected Leaves
               </div>
             </div>
-            <div className="bg-red-500 py-2 text-center text-sm font-semibold text-white sm:py-3 sm:text-base">
+            <div className="bg-red-500 py-2 text-center text-sm font-semibold text-white dark:bg-red-600 sm:py-3 sm:text-base">
               Rejected Leaves
             </div>
           </div>
+          {!isSuperAdmin && (
+            <div
+              className="h-28 w-full cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-transform hover:scale-105 dark:border dark:border-[#2d3748] dark:bg-[#23272f] dark:shadow-lg sm:h-32 md:h-32"
+              style={{ pointerEvents: "none" }}
+            >
+              <div className="flex flex-col items-center justify-center p-3 py-2 sm:p-5 sm:py-3">
+                <div className="text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
+                  {availableLeaveBalance}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-300 sm:text-sm">
+                  Available Leaves
+                </div>
+              </div>
+              <div className="bg-blue-500 py-2 text-center text-sm font-semibold text-white dark:bg-blue-600 sm:py-3 sm:text-base">
+                Available Leaves
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Charts - RESPONSIVE */}
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <WeeklyRevenue />
-        <CheckTable />
+        {isSuperAdmin ? (
+          <div className="w-full">
+            <CheckTable />
+          </div>
+        ) : (
+          <div className="flex w-full justify-center">
+            <ProfileCard />
+          </div>
+        )}
       </div>
 
       {/* Tables & Charts - RESPONSIVE */}
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {/* Traffic chart & Pie Chart - RESPONSIVE */}
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] sm:grid-cols-2">
-          <DailyTraffic />
-          <PieChartCard />
-        </div>
-
-        {/* Complex Table */}
-        <ComplexTable
-          columnsData={columnsDataComplex}
-          tableData={tableDataComplex}
-        />
+        {isSuperAdmin && (
+          <ComplexTable
+            columnsData={columnsDataComplex}
+            tableData={tableDataComplex}
+          />
+        )}
 
         {/* Task chart & Calendar - RESPONSIVE */}
         <div className="grid grid-cols-1 gap-5 rounded-[20px] sm:grid-cols-2">
-          <TaskCard />
+          {/* <TaskCard /> */}
           <div className="grid grid-cols-1 rounded-[20px]">
-            <MiniCalendar />
+            {/* <MiniCalendar /> */}
           </div>
         </div>
       </div>

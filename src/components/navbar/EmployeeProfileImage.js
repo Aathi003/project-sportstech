@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import {useState, useEffect  } from "react";
 import avatarMale from "assets/img/avatars/male_profile.png";
 import avatarFemale from "assets/img/avatars/female_profile.png";
 import employeeAPI from "services/employeeAPI";
 
-const API_BASE = "https://insoluble-unseparately-delena.ngrok-free.dev";
+const API_BASE = "https://hrm.sportstech.team/api/";
 
 export default function EmployeeProfileImage({ employeeId, ...props }) {
   const [profileUrl, setProfileUrl] = useState(avatarMale);

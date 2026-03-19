@@ -63,14 +63,14 @@ export default function SignIn() {
             response.user?.is_super_admin === "true" ||
             response.user?.is_super_admin === true
           ) {
-            navigate("/admin/Dashboard");
+            navigate("/admin/dashboard");
           } else if (
             response.user?.role === "Admin" ||
             response.user?.role?.role_name === "Admin"
           ) {
-            navigate("/admin/Dashboard");
+            navigate("/admin/dashboard");
           } else {
-            navigate("/admin/Dashboard");
+            navigate("/admin/dashboard");
           }
         } else {
           showError("Invalid login response");

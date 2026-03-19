@@ -269,7 +269,13 @@ export default function LeavePermissionRequest({
       duration_type: leaveForm.leave_duration,
       half_day_type: leaveForm.half_day_type,
       request_type: requestTypeId,
-      employee: localStorage.getItem("user_id"),
+      employee: isEditMode
+        ? editData?.employee ||
+          editData?.employeeid ||
+          editData?.employee_id ||
+          editData?.user_id ||
+          localStorage.getItem("user_id")
+        : localStorage.getItem("user_id"),
       isCompleted: true,
     };
 
@@ -346,7 +352,13 @@ export default function LeavePermissionRequest({
       start_time: permissionForm.start_time,
       end_time: permissionForm.end_time,
       reason: permissionForm.permission_reason,
-      employee: localStorage.getItem("user_id"),
+      employee: isEditMode
+        ? editData?.employee ||
+          editData?.employeeid ||
+          editData?.employee_id ||
+          editData?.user_id ||
+          localStorage.getItem("user_id")
+        : localStorage.getItem("user_id"),
       isCompleted: true,
     };
 

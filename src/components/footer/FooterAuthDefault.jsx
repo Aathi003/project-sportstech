@@ -6,7 +6,7 @@ export default function Footer() {
       <p className="mb-6 text-center text-sm text-gray-600 md:text-base lg:mb-0">
         ©{1900 + new Date().getYear()} Sportstech. All Rights Reserved.
       </p>
-      <ul className="flex flex-wrap items-center sm:flex-nowrap">
+      {/* <ul className="flex flex-wrap items-center sm:flex-nowrap">
         <li className="mr-12">
           <a
             target="blank"
@@ -43,7 +43,7 @@ export default function Footer() {
             Blog
           </a>
         </li>
-      </ul>
+      </ul> */}
     </div>
   );
 }

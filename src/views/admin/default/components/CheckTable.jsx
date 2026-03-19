@@ -8,6 +8,7 @@ import {
 import { MdBarChart } from "react-icons/md";
 import departmentAPI from "services/departmentAPI";
 import "./Checktable.css";
+import dashboardAPI from "services/dashboard";
 
 function CheckTable() {
   const [deptChartData, setDeptChartData] = useState([]);

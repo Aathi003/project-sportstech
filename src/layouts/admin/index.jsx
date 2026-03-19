@@ -94,6 +94,7 @@ export default function Admin(props) {
             <Navbar
               onOpenSidenav={() => setOpen(true)}
               onCloseSidenav={() => setOpen(false)}
+              sidebarOpen={open}
               logoText={"Horizon UI Tailwind React"}
               brandText={currentRoute}
               secondary={getActiveNavbar(routes)}

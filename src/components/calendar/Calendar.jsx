@@ -157,6 +157,38 @@ export default function Calendar() {
       return;
     }
 
+    // Prevent duplicate holiday on the same date (only when adding, not editing)
+    if (!isEditMode) {
+      const duplicateHoliday = holidays.find(
+        (h) => h.holiday_date === holidayForm.holiday_date
+      );
+      if (duplicateHoliday) {
+        Swal.fire({
+          icon: "warning",
+          title: "Duplicate Date",
+          text: `A holiday "${duplicateHoliday.holiday_name}" already exists on ${holidayForm.holiday_date}. Please choose a different date.`,
+        });
+        return;
+      }
+    }
+
+    // When editing, prevent changing to a date that already has another holiday
+    if (isEditMode && editingHoliday) {
+      const duplicateHoliday = holidays.find(
+        (h) =>
+          h.holiday_date === holidayForm.holiday_date &&
+          h.holidayid !== editingHoliday.holidayid
+      );
+      if (duplicateHoliday) {
+        Swal.fire({
+          icon: "warning",
+          title: "Duplicate Date",
+          text: `A holiday "${duplicateHoliday.holiday_name}" already exists on ${holidayForm.holiday_date}. Please choose a different date.`,
+        });
+        return;
+      }
+    }
+
     // Prevent editing if not superadmin
     if (isEditMode && !isSuperAdmin) {
       Swal.fire({

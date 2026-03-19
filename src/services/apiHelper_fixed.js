@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://insoluble-unseparately-delena.ngrok-free.dev/api';
+const API_BASE_URL = 'https://hrm.sportstech.team/api/';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

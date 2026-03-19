@@ -17,6 +17,8 @@ import {
 } from "@tanstack/react-table";
 import { useAuth } from "contexts/AuthContext";
 import { IoDocumentText } from "react-icons/io5";
+import maleProfile from "assets/img/avatars/male_profile.png";
+import femaleProfile from "assets/img/avatars/female_profile.png";
 
 const columnHelper = createColumnHelper();
 
@@ -102,10 +104,10 @@ const Employee = () => {
 
             return {
               id: emp.id,
-              name: `${emp.user_name || ""}`.trim(),
+              name: `${emp.user_name || "-"}`.trim(),
               email: emp.email || "-",
-              role: roleName,
-              department: departmentName,
+              role: roleName || "-",
+              department: departmentName || "-",
               status: emp.is_active ? "Active" : "Inactive",
               joinDate: emp.doj_date
                 ? new Date(emp.doj_date).toLocaleDateString()
@@ -248,7 +250,7 @@ const Employee = () => {
 
   const columns = useMemo(
     () => [
-      // S.No Column - NEW
+      // S.No Column
       columnHelper.display({
         id: "sno",
         header: () => (
@@ -258,9 +260,10 @@ const Employee = () => {
         ),
         cell: (info) => {
           const rowIndex = info.row.index;
-          const serialNumber = (currentPage - 1) * ITEMS_PER_PAGE + rowIndex + 1;
+          const serialNumber =
+            (currentPage - 1) * ITEMS_PER_PAGE + rowIndex + 1;
           return (
-            <p className="whitespace-nowrap text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+            <p className="text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
               {serialNumber}
             </p>
           );
@@ -273,21 +276,43 @@ const Employee = () => {
             NAME
           </p>
         ),
-        cell: (info) => (
-          <p className="whitespace-nowrap text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
-            {info.getValue()}
-          </p>
-        ),
+        cell: (info) => {
+          const emp = info.row.original;
+          const profileSrc =
+            emp.profile_picture && emp.profile_picture.trim() !== ""
+              ? emp.profile_picture.startsWith("data:")
+                ? emp.profile_picture
+                : emp.profile_picture
+              : emp.gender?.trim().toLowerCase() === "female"
+              ? femaleProfile
+              : maleProfile;
+          return (
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-100 dark:bg-brand-900">
+                <img
+                  className="h-full w-full rounded-full object-cover"
+                  src={profileSrc}
+                  alt="Profile"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+                  {info.getValue()}
+                </p>
+              </div>
+            </div>
+          );
+        },
       }),
       columnHelper.accessor("joinDate", {
         id: "joinDate",
         header: () => (
           <p className="text-xs font-bold text-gray-600 dark:text-white sm:text-sm">
-            JOIN DATE
+            JOINDATE
           </p>
         ),
         cell: (info) => (
-          <p className="whitespace-nowrap text-xs text-navy-700 dark:text-white sm:text-sm">
+          <p className="text-xs text-navy-700 dark:text-white sm:text-sm">
             {info.getValue()}
           </p>
         ),
@@ -300,7 +325,7 @@ const Employee = () => {
           </p>
         ),
         cell: (info) => (
-          <p className="whitespace-nowrap text-xs text-navy-700 dark:text-white sm:text-sm">
+          <p className="break-all text-xs text-navy-700 dark:text-white sm:text-sm">
             {info.getValue()}
           </p>
         ),
@@ -313,7 +338,7 @@ const Employee = () => {
           </p>
         ),
         cell: (info) => (
-          <p className="whitespace-nowrap text-xs text-navy-700 dark:text-white sm:text-sm">
+          <p className="text-xs text-navy-700 dark:text-white sm:text-sm">
             {info.getValue()}
           </p>
         ),
@@ -326,7 +351,7 @@ const Employee = () => {
           </p>
         ),
         cell: (info) => (
-          <p className="whitespace-nowrap text-xs text-navy-700 dark:text-white sm:text-sm">
+          <p className="text-xs text-navy-700 dark:text-white sm:text-sm">
             {info.getValue()}
           </p>
         ),
@@ -372,7 +397,7 @@ const Employee = () => {
                       </div>
                     </button>
                     <span
-                      className={`ml-2 whitespace-nowrap text-xs font-bold sm:ml-3 sm:text-sm ${
+                      className={`ml-2 text-xs font-bold sm:ml-3 sm:text-sm ${
                         isActive
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"
@@ -387,29 +412,8 @@ const Employee = () => {
           ]
         : []),
 
-      columnHelper.accessor("id", {
-        id: "docs",
-        header: () => (
-          <p className="text-xs font-bold text-gray-600 dark:text-white sm:text-sm">
-            DOC
-          </p>
-        ),
-        cell: (info) => {
-          const emp = info.row.original;
-          return (
-            <div className="flex gap-2 sm:gap-3">
-              <button
-                onClick={() => handleViewDocuments(emp)}
-                className="rounded-lg p-1.5 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900 sm:p-2"
-                title="Show Documents"
-              >
-                <FaEye size={18} className="sm:h-5 sm:w-5" />
-              </button>
-            </div>
-          );
-        },
-      }),
-      columnHelper.accessor("id", {
+      // Combined ACTIONS column (Docs + Edit together inside one column)
+      columnHelper.display({
         id: "actions",
         header: () => (
           <p className="text-xs font-bold text-gray-600 dark:text-white sm:text-sm">
@@ -419,7 +423,14 @@ const Employee = () => {
         cell: (info) => {
           const emp = info.row.original;
           return (
-            <div className="flex gap-2 sm:gap-3">
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
+              <button
+                onClick={() => handleViewDocuments(emp)}
+                className="rounded-lg p-1.5 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900 sm:p-2"
+                title="Show Documents"
+              >
+                <FaEye size={18} className="sm:h-5 sm:w-5" />
+              </button>
               <button
                 onClick={() => handleEditEmployee(emp)}
                 className="rounded-lg p-1.5 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900 sm:p-2"
@@ -432,12 +443,11 @@ const Employee = () => {
         },
       }),
     ],
-    [isAdmin, togglingId, currentPage]  // Added currentPage to dependencies
+    [isAdmin, togglingId, currentPage]
   );
 
   // Filter employees based on search term
   const filteredEmployees = useMemo(() => {
-    // If not superadmin, only show employee whose user_id matches logged-in user
     const loggedInUserId = Number(localStorage.getItem("user_id"));
     const isSuperAdmin =
       localStorage.getItem("is_super_admin") === "true" ||
@@ -457,6 +467,7 @@ const Employee = () => {
       return (
         (emp.name && emp.name.toLowerCase().includes(searchLower)) ||
         (emp.email && emp.email.toLowerCase().includes(searchLower)) ||
+        (emp.emp_code && emp.emp_code.toLowerCase().includes(searchLower)) ||
         (emp.role_name && emp.role_name.toLowerCase().includes(searchLower)) ||
         (emp.department_name &&
           emp.department_name.toLowerCase().includes(searchLower)) ||
@@ -491,7 +502,7 @@ const Employee = () => {
 
   return (
     <div className="mt-3 grid h-full grid-cols-1 gap-5">
-      <Card extra={"w-full h-full px-4 pb-4 sm:px-6 sm:pb-6"}>
+      <Card extra={"w-full h-full px-4 pb-4 sm:px-6 sm:pb-6 overflow-visible"}>
         {/* Header Section - Responsive */}
         <div className="flex flex-col gap-3 pt-4 sm:gap-4">
           {/* Title and Add Button Row */}
@@ -518,7 +529,7 @@ const Employee = () => {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Search by name, email, role, department..."
+                placeholder="Search by name, email, employee code, role, department..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 placeholder-gray-400 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white dark:placeholder-gray-500 sm:px-4 sm:py-2.5"
@@ -535,8 +546,8 @@ const Employee = () => {
           </div>
         </div>
 
-        {/* Table Section - Horizontal Scroll Enabled */}
-        <div className="mt-6 overflow-x-auto sm:mt-8">
+        {/* Table Section — NO horizontal scroll, box extends with content */}
+        <div className="mt-6 sm:mt-8">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <p className="text-sm text-gray-600 dark:text-gray-400 sm:text-base">
@@ -556,7 +567,7 @@ const Employee = () => {
               </button>
             </div>
           ) : (
-            <table className="w-full min-w-[900px] border-collapse">
+            <table className="w-full table-auto border-collapse">
               <thead>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr
@@ -566,7 +577,7 @@ const Employee = () => {
                     {headerGroup.headers.map((header) => (
                       <th
                         key={header.id}
-                        className="px-2 py-2.5 text-left sm:px-4 sm:py-3"
+                        className="px-2 py-2.5 text-center align-middle sm:px-4 sm:py-3"
                         onClick={header.column.getToggleSortingHandler()}
                         style={{ cursor: "pointer" }}
                       >
@@ -583,10 +594,13 @@ const Employee = () => {
                 {table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+                    className="border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 h-16"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-2 py-2.5 sm:px-4 sm:py-3">
+                      <td
+                        key={cell.id}
+                        className="px-2 py-2.5 text-center sm:px-4 sm:py-3"
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

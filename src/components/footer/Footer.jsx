@@ -6,7 +6,7 @@ const Footer = () => {
           ©{1900 + new Date().getYear()} Sportstech. All Rights Reserved.
         </p>
       </h5>
-      <div>
+      {/* <div>
         <ul className="flex flex-wrap items-center gap-3 sm:flex-nowrap md:gap-10">
           <li>
             <a
@@ -45,7 +45,7 @@ const Footer = () => {
             </a>
           </li>
         </ul>
-      </div>
+      </div> */}
     </div>
   );
 };

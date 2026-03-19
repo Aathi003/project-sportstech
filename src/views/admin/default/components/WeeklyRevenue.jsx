@@ -8,82 +8,83 @@ import {
 import { MdBarChart } from "react-icons/md";
 import dashboardAPI from "services/dashboard";
 
+
 const WeeklyRevenue = () => {
   // Initialize with default static data as fallback
   const [chartData, setChartData] = useState(barChartDataWeeklyRevenue);
-  const [chartOptions, setChartOptions] = useState(
-    barChartOptionsWeeklyRevenue
-  );
+  const [chartOptions, setChartOptions] = useState(barChartOptionsWeeklyRevenue);
   const [loading, setLoading] = useState(true);
+
+  // Get super admin and user id from localStorage
+  const isSuperAdmin = localStorage.getItem("is_super_admin") === "true" || localStorage.getItem("is_super_admin") === true;
+  const userId = localStorage.getItem("user_id");
 
   useEffect(() => {
     loadWeeklyRevenueData();
+    // eslint-disable-next-line
   }, []);
 
   const loadWeeklyRevenueData = () => {
     setLoading(true);
+    // If super admin, show all employees' weekly leaves
+    // If not, show only this user's weekly leaves
     dashboardAPI.getWeeklyRevenueChart(
       (res) => {
+        let payload = res?.data?.weekly_trend || [];
 
-        // Use res.data.weekly_trend for chart data
-        const payload = res?.data?.weekly_trend || [];
-
-        // If no data, keep default static data
         if (!Array.isArray(payload) || payload.length === 0) {
           setLoading(false);
           return;
+        }
+
+        // If not super admin, filter each day's details to only this user
+        if (!isSuperAdmin && userId) {
+          payload = payload.map((item) => {
+            // Filter leave details
+            let approved_leave_details = Array.isArray(item.approved_leave_details)
+              ? item.approved_leave_details.filter((emp) => String(emp.id) === String(userId))
+              : [];
+            let approved_permission_details = Array.isArray(item.approved_permission_details)
+              ? item.approved_permission_details.filter((emp) => String(emp.id) === String(userId))
+              : [];
+            return {
+              ...item,
+              Leave_Approved: approved_leave_details.length,
+              Permission_Approved: approved_permission_details.length,
+              approved_leave_details,
+              approved_permission_details,
+            };
+          });
         }
 
         // Extract categories (days) and data from API response
         const categories = payload.map((item) => item.day || "");
 
         // Leave data
-        const leaveApprovedData = payload.map(
-          (item) => item.Leave_Approved || 0
-        );
+        const leaveApprovedData = payload.map((item) => item.Leave_Approved || 0);
 
         // Permission data
-        const permissionApprovedData = payload.map(
-          (item) => item.Permission_Approved || 0
-        );
+        const permissionApprovedData = payload.map((item) => item.Permission_Approved || 0);
 
         // Leave details info (employee names and departments)
         const approvedLeaveDetailsInfo = payload.map((item) => {
-          if (
-            Array.isArray(item.approved_leave_details) &&
-            item.approved_leave_details.length > 0
-          ) {
-            return (
-              
-              item.approved_leave_details
-                .map(
-                  (emp) =>
-                    `${emp.name} <span style="color:#ff4444">(${emp.dept})</span>`
-                )
-                .join("<br/>")
-            );
+          if (Array.isArray(item.approved_leave_details) && item.approved_leave_details.length > 0) {
+            return item.approved_leave_details
+              .map((emp) => `${emp.name} <span style="color:#ff4444">(${emp.dept})</span>`)
+              .join("<br/>");
           } else {
-            return "No employees on leave";
+            return isSuperAdmin ? "No employees on leave" : "No leave for you this day";
           }
         });
 
         // Permission details info (employee names and departments)
         const approvedPermissionDetailsInfo = payload.map((item) => {
-          if (
-            Array.isArray(item.approved_permission_details) &&
-            item.approved_permission_details.length > 0
-          ) {
-            return (
-              
-              item.approved_permission_details
-                .map(
-                  (emp) =>
-                    `${emp.name} <span style="color:#0088ff">(${emp.dept})</span>`
-                )
-                .join("<br/>")
-            );
+          if (Array.isArray(item.approved_permission_details) && item.approved_permission_details.length > 0) {
+            return item.approved_permission_details
+              .map((emp) => `${emp.name} <span style="color:#0088ff">(${emp.dept})</span>`)
+              .join("<br/>");
           } else {
-            return "No employees on permission";
+            return isSuperAdmin ? "No employees on permission" : "No permission for you this day";
           }
         });
 
@@ -185,7 +186,6 @@ const WeeklyRevenue = () => {
       },
       (error) => {
         console.error("Failed to load weekly revenue data:", error);
-        // On error, keep default static data from barChartDataWeeklyRevenue
         setLoading(false);
       }
     );

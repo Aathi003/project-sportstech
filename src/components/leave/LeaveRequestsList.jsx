@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import dashboardAPI from "services/dashboard";
 import {
   FaCalendar,
   FaUser,
@@ -16,7 +17,6 @@ import { MdEdit } from "react-icons/md";
 import LeavePermissionRequest from "components/leave/LeavePermissionRequest";
 import maleProfile from "assets/img/avatars/male_profile.png";
 import femaleProfile from "assets/img/avatars/female_profile.png";
-
 import employeeAPI from "services/employeeAPI";
 
 export default function LeaveRequestsList() {
@@ -37,6 +37,7 @@ export default function LeaveRequestsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState("");
+  const [availableLeaveBalance, setAvailableLeaveBalance] = useState(0);
 
   // New states for edit functionality
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -56,6 +57,7 @@ export default function LeaveRequestsList() {
   const isCompleted = localStorage.getItem("isCompleted");
 
   const itemsPerPage = 10;
+  const isSuperAdmin = localStorage.getItem("is_super_admin");
 
   useEffect(() => {
     // Get user data from localStorage
@@ -75,6 +77,31 @@ export default function LeaveRequestsList() {
 
     // Pre-load leave types and request types
     loadPreLoadedData();
+
+    // Fetch available leave balance for non-super admin
+    if (!isAdminUser && dashboardAPI && dashboardAPI.getAvailableLeaveBalance) {
+      dashboardAPI.getAvailableLeaveBalance(
+        (res) => {
+          let balance = 0;
+          if (typeof res === "object") {
+            if (typeof res.available_balance === "number") {
+              balance = res.available_balance;
+            } else if (typeof res.available_balance === "string") {
+              balance = Number(res.available_balance) || 0;
+            } else if (
+              res.data &&
+              typeof res.data.available_balance !== "undefined"
+            ) {
+              balance = Number(res.data.available_balance) || 0;
+            }
+          } else if (typeof res === "number") {
+            balance = res;
+          }
+          setAvailableLeaveBalance(balance);
+        },
+        () => setAvailableLeaveBalance(0)
+      );
+    }
   }, []);
 
   const loadPreLoadedData = () => {
@@ -331,7 +358,11 @@ export default function LeaveRequestsList() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Filters - Updated Grid */}
-      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
+      <div
+        className={`grid grid-cols-4 items-end gap-3 sm:grid-cols-${
+          isAdmin ? 3 : 4
+        } sm:gap-4 md:grid-cols-${isAdmin ? 3 : 4}`}
+      >
         <div>
           <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
             Search by Name or Type
@@ -369,6 +400,16 @@ export default function LeaveRequestsList() {
 
         <div>
           <LeavePermissionRequest onClose={loadLeaveRequests} />
+        </div>
+        <div>
+          {/* Available Leaves Card for non-super admin users */}
+          {!isAdmin && (
+            <div className="inline-flex w-full max-w-full flex-nowrap items-center gap-2 overflow-hidden rounded-lg bg-brand-500 p-3 text-xs font-bold  text-white transition duration-200 hover:bg-brand-600 sm:p-3 sm:text-sm md:p-2.5 md:text-base lg:px-10 lg:text-lg">
+              <p className="  text-[5px] font-bold text-white-700 text-white justify-between dark:text-white sm:text-sm md:text-base lg:text-lg">
+                Available Leaves: {availableLeaveBalance}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
