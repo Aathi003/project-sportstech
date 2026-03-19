@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SportsTech - Contact Us</title>
+  <link rel="icon" href="Adobe Express - file.png">
+  <link rel="stylesheet" href="contact.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav>
+      <div class="logo">
+        <img src="Screenshot 2025-08-05 183504-Picsart-AiImageEnhancer.png" alt="SportsTech" class="tittlelogo">
+      </div>
+
+      <ul class="nav-links desktop-nav">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="product.html">Products</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="#" class="active">Contact</a></li>
+      </ul>
+
+      <div class="nav-actions desktop-actions">
+        <input type="text" id="searchBar" placeholder="Search products...">
+        <button class="wishlist-button" id="wishlistIcon">
+          🤍 <span id="wishlistCount">0</span>
+        </button>
+        <button class="cart-button" id="cartIcon">
+          🛒 <span id="cartCount">0</span>
+        </button>
+      </div>
+
+      <div class="nav-actions mobile-actions">
+        <button class="wishlist-button mobile-icon" id="wishlistIconMobile">
+          🤍 <span id="wishlistCountMobile">0</span>
+        </button>
+        <button class="cart-button mobile-icon" id="cartIconMobile">
+          🛒 <span id="cartCountMobile">0</span>
+        </button>
+      </div>
+
+      <div class="mobile-menu-toggle" id="mobileMenuToggle">
+        <span></span><span></span><span></span>
+      </div>
+    </nav>
+
+    <!-- Mobile Sidebar -->
+    <div class="mobile-sidebar" id="mobileSidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button class="close-sidebar" id="closeSidebar">&times;</button>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="sidebar-search">
+          <input type="text" id="mobileSearchBar" placeholder="Search products...">
+          <button class="search-btn">🔍</button>
+        </div>
+
+        <ul class="sidebar-nav">
+          <li><a href="index.html" onclick="closeMobileSidebar()"> Home</a></li>
+          <li><a href="product.html" onclick="closeMobileSidebar()"> Products</a></li>
+          <li><a href="about.html" onclick="closeMobileSidebar()"> About</a></li>
+          <li><a href="#" onclick="closeMobileSidebar()" class="active"> Contact</a></li>
+        </ul>
+
+        <div class="sidebar-actions">
+          <button class="sidebar-btn wishlist-sidebar-btn" id="wishlistSidebarBtn">
+            <span class="btn-icon">🤍</span>
+            <span class="btn-text">Wishlist</span>
+            <span class="btn-count" id="wishlistCountSidebar">0</span>
+          </button>
+
+          <button class="sidebar-btn cart-sidebar-btn" id="cartSidebarBtn">
+            <span class="btn-icon">🛒</span>
+            <span class="btn-text">Cart</span>
+            <span class="btn-count" id="cartCountSidebar">0</span>
+          </button>
+
+          <button class="sidebar-btn orders-btn">
+            <span class="btn-icon">📋</span>
+            <span class="btn-text">My Orders</span>
+          </button>
+
+          <button class="sidebar-btn profile-btn">
+            <span class="btn-icon">👤</span>
+            <span class="btn-text">Profile</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </header>
+
+  <!-- Cart Popup -->
+  <div id="cartPopup" class="cart-popup hidden">
+    <button class="close-cart-btn" onclick="closeCart()">&times;</button>
+    <h3 class="cart-title">Your Cart</h3>
+    <div id="cartItems"></div>
+    <div class="cart-footer">
+      <h4>Total: ₹<span id="cartTotal">0</span></h4>
+      <button class="checkout-btn">Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <!-- Wishlist Popup -->
+  <div id="wishlistPopup" class="wishlist-popup hidden">
+    <button class="close-wishlist-btn" onclick="closeWishlist()">&times;</button>
+    <h3 class="wishlist-title">Your Wishlist</</h3>
+    <div id="wishlistItems"></div>
+    <div class="wishlist-footer">
+      <button class="clear-wishlist-btn" onclick="clearWishlist()">Clear Wishlist</button>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div id="successMessage" class="success-overlay" style="display: none;">
+    <div class="success-modal">
+      <div class="success-icon">✓</div>
+      <h3>Message Sent Successfully!</h3>
+      <p>Thank you for contacting us. We'll get back to you soon.</p>
+      <button onclick="closeSuccess()" class="success-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="contact-container">
+    <div class="container">
+      <section class="contact-hero">
+        <h1>Get In Touch</h1>
+        <p>We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+      </section>
+
+      <section class="contact-info">
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-icon">📍</div>
+            <h3>Our Office</h3>
+            <p>123 SportsTech Avenue<br>Innovation District<br>Tech City, TC 12345</p>
+          </div>
+          <div class="info-card">
+            <div class="info-icon">📞</div>
+            <h3>Phone</h3>
+            <p>+1 (555) 123-4567<br>Mon-Fri 9AM-6PM</p>
+          </div>
+          <div class="info-card">
+            <div class="info-icon">✉️</div>
+            <h3>Email</h3>
+            <p>info@sportstech.com<br>support@sportstech.com</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="contact-main">
+        <div class="contact-grid">
+          <!-- Form -->
+          <div class="contact-form-container">
+            <h2>Send us a Message</h2>
+            <form id="contactForm" class="contact-form" novalidate>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="text" id="firstName" name="firstName" required>
+                  <label for="firstName">First Name</label>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="lastName" name="lastName" required>
+                  <label for="lastName">Last Name</label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <input type="email" id="email" name="email" required>
+                <label for="email">Email Address</label>
+              </div>
+
+              <div class="form-group">
+                <input type="tel" id="phone" name="phone">
+                <label for="phone">Phone Number (Optional)</label>
+              </div>
+
+              <!-- Select field: fixed (static label + placeholder option) -->
+              <div class="form-group select-group">
+                <label for="service" class="label-static">Service Type</label>
+                <div class="select-field">
+                  <select id="service" name="service" required>
+                    <option value="" disabled selected>Select a service</option>
+                    <option value="general">General Inquiry</option>
+                    <option value="support">Technical Support</option>
+                    <option value="sales">Sales & Pricing</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="feedback">Feedback</option>
+                  </select>
+                  <svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <textarea id="message" name="message" rows="5" required></textarea>
+                <label for="message">Your Message</label>
+              </div>
+
+              <button type="submit" class="submit-btn">
+                <span class="btn-text">Send Message</span>
+                <span class="btn-icon">→</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Map -->
+          <div class="map-container">
+            <div class="map-placeholder">
+              <div class="map-content">
+                <div class="map-icon">🗺️</div>
+                <h3>Find Us Here</h3>
+                <p>Click to open in Google Maps</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="contact.js" defer></script>
+</body>
+</html>

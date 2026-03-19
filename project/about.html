@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>SportsTech-About us</title>
+   <link rel="icon" href="Adobe Express - file.png">
+  <link rel="stylesheet" href="aboutstyle.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <nav>
+      <!-- Logo and Desktop Navigation -->
+      <div class="logo">
+        <img src="Screenshot 2025-08-05 183504-Picsart-AiImageEnhancer.png" alt="SportsTech" class="tittlelogo">
+      </div>
+
+      <!-- Desktop Navigation -->
+      <ul class="nav-links desktop-nav">
+        <li><a href="index.html" id="homeBtn">Home</a></li>
+        <li><a href="product.html">Products</a></li>
+        <li><a href="#" class="active">About Us</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+
+      <!-- Desktop Actions -->
+      <div class="nav-actions desktop-actions">
+        <input type="text" id="searchBar" placeholder="Search products...">
+        <button class="wishlist-button" id="wishlistIcon">
+          🤍 <span id="wishlistCount">0</span>
+        </button>
+        <button class="cart-button" id="cartIcon">
+          🛒 <span id="cartCount">0</span>
+        </button>
+      </div>
+
+      <!-- Mobile Actions (only cart and wishlist icons) -->
+      <div class="nav-actions mobile-actions">
+        <button class="wishlist-button mobile-icon" id="wishlistIconMobile">
+           🤍<span id="wishlistCountMobile">0</span>
+        </button>
+        <button class="cart-button mobile-icon" id="cartIconMobile">
+          🛒 <span id="cartCountMobile">0</span>
+        </button>
+      </div>
+
+      <!-- Mobile Menu Toggle (on right side for mobile) -->
+      <div class="mobile-menu-toggle" id="mobileMenuToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </nav>
+
+    <!-- Mobile Sidebar -->
+    <div class="mobile-sidebar" id="mobileSidebar">
+      <div class="sidebar-header">
+        <h3>Menu</h3>
+        <button class="close-sidebar" id="closeSidebar">&times;</button>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="sidebar-search">
+          <input type="text" id="mobileSearchBar" placeholder="Search products...">
+          <button class="search-btn">🔍</button>
+        </div>
+
+        <!-- Navigation Links -->
+        <ul class="sidebar-nav">
+          <li><a href="index.html" onclick="closeMobileSidebar()"> Home</a></li>
+          <li><a href="product.html" onclick="closeMobileSidebar()"> Products</a></li>
+          <li><a href="#" onclick="closeMobileSidebar()" class="active"> About</a></li>
+          <li><a href="contact.html" onclick="closeMobileSidebar()"> Contact</a></li>
+        </ul>
+
+        <!-- Sidebar Actions -->
+        <div class="sidebar-actions">
+          <button class="sidebar-btn wishlist-sidebar-btn" id="wishlistSidebarBtn">
+            <span class="btn-icon">🤍</span>
+            <span class="btn-text">Wishlist</span>
+            <span class="btn-count" id="wishlistCountSidebar">0</span>
+          </button>
+
+          <button class="sidebar-btn cart-sidebar-btn" id="cartSidebarBtn">
+            <span class="btn-icon">🛒</span>
+            <span class="btn-text">Cart</span>
+            <span class="btn-count" id="cartCountSidebar">0</span>
+          </button>
+
+          <button class="sidebar-btn orders-btn">
+            <span class="btn-icon">📋</span>
+            <span class="btn-text">My Orders</span>
+          </button>
+
+          <button class="sidebar-btn profile-btn">
+            <span class="btn-icon">👤</span>
+            <span class="btn-text">Profile</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  </header>
+
+  <!-- Cart Popup -->
+  <div id="cartPopup" class="cart-wishlist-popup hidden">
+    <button class="close-cart-btn" onclick="closeCart()">×</button>
+    <h3 class="cart-title">Your Cart</h3>
+    <div id="cartItems"></div>
+    <div class="cart-footer">
+        <h4>Total: ₹<span id="cartTotal">0</span></h4>
+        <button class="checkout-btn">Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <!-- Wishlist Popup -->
+  <div id="wishlistPopup" class="cart-wishlist-popup hidden">
+    <button class="close-wishlist-btn" onclick="closeWishlist()">×</button>
+    <h3 class="wishlist-title">Your Wishlist</h3>
+    <div id="wishlistItems"></div>
+    <div class="wishlist-footer">
+        <button class="clear-wishlist-btn" onclick="clearWishlist()">Clear Wishlist</button>
+    </div>
+  </div>
+
+  <section id="about-us" class="about-section">
+    <!-- Rest of your about content remains the same -->
+    <div class="background-animation"></div>
+    
+    <div class="container">
+      <!-- Hero Section -->
+      <div class="about-hero">
+        <h1 class="hero-title">
+          <span class="title-line">About</span>
+          <span class="title-line highlight">SportsTech</span>
+        </h1>
+        <p class="hero-subtitle">Leading the future of sports technology innovation</p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="about-grid">
+        <div class="about-content">
+          <div class="content-card">
+            <div class="card-icon">🚀</div>
+            <h3>Our Vision</h3>
+            <p>Revolutionizing the sports industry through cutting-edge technology solutions that empower athletes and enhance performance.</p>
+          </div>
+
+          <div class="content-card">
+            <div class="card-icon">💡</div>
+            <h3>Innovation First</h3>
+            <p>We believe in pushing boundaries and creating breakthrough solutions that transform how sports are played, watched, and analyzed.</p>
+          </div>
+
+          <div class="content-card">
+            <div class="card-icon">🏆</div>
+            <h3>Excellence</h3>
+            <p>Our commitment to quality and excellence drives us to deliver world-class products that exceed expectations.</p>
+          </div>
+        </div>
+
+        <div class="about-visual">
+          <div class="visual-card main-visual">
+            <img src="ali.jpg" alt="Sports Technology" />
+            <h2>Ali Ahamad</h2>
+            <p>CEO & Founder</p>
+            <div class="visual-overlay">
+              <h4 class="Father">Father of SportsTech</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-number" data-count="500">0</div>
+            <div class="stat-label">Happy Clients</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">🏅</div>
+            <div class="stat-number" data-count="250">0</div>
+            <div class="stat-label">Projects Completed</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">🌍</div>
+            <div class="stat-number" data-count="50">0</div>
+            <div class="stat-label">Countries Served</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-number" data-count="10">0</div>
+            <div class="stat-label">Years Experience</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Section -->
+      <div class="team-section">
+        <h2 class="section-title">Meet Our Team</h2>
+        <div class="team-grid">
+          <div class="team-card">
+            <div class="team-image">
+              <img src="bharathi sir.jpeg" alt="Team Member" />
+            </div>
+            <h4>Santhana Bharathi</h4>
+            <p>CEO OF MADURAI</p>
+          </div>
+          
+          <div class="team-card">
+            <div class="team-image">
+              <img src="naga.jpeg" alt="Team Member" />
+            </div>
+            <h4>Naga Arjun</h4>
+            <p> Python Developer</p>
+          </div>
+          
+          <div class="team-card">
+            <div class="team-image">
+              <img src="aathi.jpeg" alt="Team Member" />
+            </div>
+            <h4>Aathisesan</h4>
+            <p>Intern</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="aboutscript.js"></script>
+</body>
+</html>
