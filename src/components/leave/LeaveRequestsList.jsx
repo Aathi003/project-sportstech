@@ -20,12 +20,21 @@ import femaleProfile from "assets/img/avatars/female_profile.png";
 import employeeAPI from "services/employeeAPI";
 
 export default function LeaveRequestsList() {
+  // Request Type Filter State
+  const [requestTypeFilter, setRequestTypeFilter] = useState(() => {
+    const filter = localStorage.getItem("request_type");
+    if (filter) {
+      localStorage.removeItem("request_type");
+      return filter;
+    }
+    return "all";
+  });
+
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState(() => {
-    // Check for filter in localStorage (set by dashboard click)
     const filter = localStorage.getItem("leave_status_filter");
     if (filter) {
       localStorage.removeItem("leave_status_filter");
@@ -54,31 +63,73 @@ export default function LeaveRequestsList() {
 
   // Expanded text states
   const [expandedReasons, setExpandedReasons] = useState({});
-  const isCompleted = localStorage.getItem("isCompleted");
+  const [dateFilter] = useState(() => {
+    const filter = localStorage.getItem("leave_date_filter");
+    if (filter) {
+      localStorage.removeItem("leave_date_filter");
+      return filter;
+    }
+    return "";
+  });
+  const [monthlyFrom] = useState(() => {
+    const from = localStorage.getItem("monthly_leave_from");
+    if (from) {
+      localStorage.removeItem("monthly_leave_from");
+      return from;
+    }
+    return "";
+  });
+  const [monthlyTo] = useState(() => {
+    const to = localStorage.getItem("monthly_leave_to");
+    if (to) {
+      localStorage.removeItem("monthly_leave_to");
+      return to;
+    }
+    return "";
+  });
 
   const itemsPerPage = 10;
   const isSuperAdmin = localStorage.getItem("is_super_admin");
 
+  const normalizeToIsoDate = (value) => {
+    if (!value) return "";
+
+    const raw = String(value).trim();
+    if (!raw) return "";
+
+    const direct = raw.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) {
+      return direct;
+    }
+
+    const dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dmy) {
+      const [, dd, mm, yyyy] = dmy;
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+
+    return "";
+  };
+
   useEffect(() => {
-    // Get user data from localStorage
     const userRole = localStorage.getItem("user_role");
     const storedUserName = localStorage.getItem("user_name");
     const userEmail = localStorage.getItem("user_email");
     const isSuperAdmin = localStorage.getItem("is_super_admin");
 
-    // Check if user is super admin (is_super_admin must be true)
     const isAdminUser = isSuperAdmin === "true" || isSuperAdmin === true;
 
     setIsAdmin(isAdminUser);
     setUserName(storedUserName || "");
 
-    // Load leave requests
     loadLeaveRequests();
-
-    // Pre-load leave types and request types
     loadPreLoadedData();
 
-    // Fetch available leave balance for non-super admin
     if (!isAdminUser && dashboardAPI && dashboardAPI.getAvailableLeaveBalance) {
       dashboardAPI.getAvailableLeaveBalance(
         (res) => {
@@ -105,7 +156,6 @@ export default function LeaveRequestsList() {
   }, []);
 
   const loadPreLoadedData = () => {
-    // Load leave types
     leaveAPI.getLeaveTypes(
       (data) => {
         const types = Array.isArray(data)
@@ -118,7 +168,6 @@ export default function LeaveRequestsList() {
       }
     );
 
-    // Load request types
     leaveAPI.getRequestTypes(
       (data) => {
         const types = Array.isArray(data)
@@ -140,7 +189,6 @@ export default function LeaveRequestsList() {
       (data) => {
         let requestsArray = [];
 
-        // Handle multiple response formats
         if (Array.isArray(data)) {
           requestsArray = data;
         } else if (data?.results && Array.isArray(data.results)) {
@@ -165,22 +213,28 @@ export default function LeaveRequestsList() {
 
   useEffect(() => {
     loadLeaveRequests();
-  }, [localStorage.getItem("isCompleted")]);
+  }, []);
 
-  // Filter requests based on status, search term, and today's date
   const today = new Date();
-  const todayDateString = today.toISOString().split("T")[0]; // 'YYYY-MM-DD'
+  const todayDateString = today.toISOString().split("T")[0];
 
-  // Get date filter from localStorage
-  const dateFilter = localStorage.getItem("leave_date_filter");
+  const uniqueRequestTypes = Array.from(
+    new Set(leaveRequests.map((req) => req.request_type).filter(Boolean))
+  );
 
-  // CONDITIONAL FILTER LOGIC - Supports both date filtering and showing all
   const filteredRequests = leaveRequests.filter((request) => {
     const statusLower = request.status
       ? String(request.status).toLowerCase()
       : "";
     const matchesStatus =
       statusFilter === "all" || statusLower === statusFilter;
+
+    const requestTypeLower = request.request_type
+      ? String(request.request_type).toLowerCase()
+      : "";
+    const matchesRequestType =
+      requestTypeFilter === "all" ||
+      requestTypeLower === String(requestTypeFilter).toLowerCase();
 
     const matchesSearch =
       !searchTerm ||
@@ -191,26 +245,41 @@ export default function LeaveRequestsList() {
         .includes(searchTerm.toLowerCase()) ||
       request.role_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Conditional date filtering
-    // If dateFilter exists and is not empty, apply date filter
-    // Otherwise, show all dates (no date restriction)
-    let matchesDate = true; // Default: show all dates
+    let matchesDate = true;
 
     if (dateFilter && dateFilter !== "") {
-      // DATE FILTER ACTIVE - Use created_at for date comparison
-      const requestDate = request.created_at
-        ? new Date(request.created_at).toISOString().split("T")[0]
-        : request.date
-        ? request.date
-        : "";
-      matchesDate = requestDate === dateFilter;
-    }
-    // If no dateFilter, matchesDate stays true, showing all dates
+      const targetDate = normalizeToIsoDate(dateFilter);
+      const candidateDates = [
+        normalizeToIsoDate(request.from_date),
+        normalizeToIsoDate(request.date),
+        normalizeToIsoDate(request.created_at),
+      ].filter(Boolean);
 
-    return matchesStatus && matchesSearch && matchesDate;
+      matchesDate = candidateDates.includes(targetDate);
+    }
+
+    let matchesMonthlyRange = true;
+    if (monthlyFrom && monthlyTo) {
+      const reqFrom = request.from_date ? new Date(request.from_date) : null;
+      const reqTo = request.to_date ? new Date(request.to_date) : reqFrom;
+      const rangeFrom = new Date(monthlyFrom);
+      const rangeTo = new Date(monthlyTo);
+      if (reqFrom && reqTo) {
+        matchesMonthlyRange = reqFrom <= rangeTo && reqTo >= rangeFrom;
+      } else {
+        matchesMonthlyRange = false;
+      }
+    }
+
+    return (
+      matchesStatus &&
+      matchesRequestType &&
+      matchesSearch &&
+      matchesDate &&
+      matchesMonthlyRange
+    );
   });
 
-  // Pagination
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedRequests = filteredRequests.slice(
@@ -315,70 +384,67 @@ export default function LeaveRequestsList() {
     });
   };
 
-  const calculateDuration = (fromDate, toDate) => {
-    // Check if fromDate exists, if not return "-"
+  const calculateDuration = (fromDate, toDate, duration_type) => {
     if (!fromDate) return "-";
-
-    // Convert string dates to JavaScript Date objects
     const from = new Date(fromDate);
     const to = toDate ? new Date(toDate) : from;
-
-    // Calculate the difference in milliseconds
     const diffTime = Math.abs(to - from);
-
-    // Convert milliseconds to days and add 1 to include both start and end day
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    if (duration_type === "halfday") return "Half Day";
+    return `${diffDays} Day${diffDays > 1 ? "s" : ""}`;
+  };
 
-    // Return formatted result like "5 Days"
-    return `${diffDays} Days`;
+  const renderDuration = (request) => {
+    if (request.request_type === "Permission") return <span>2 Hours</span>;
+    const isHalfDay = request.duration_type === "halfday";
+    const halfLabel =
+      request.half_day_type === "second" ? "Second Half" : "First Half";
+    return (
+      <span className="flex flex-col">
+        <span>
+          {calculateDuration(
+            request.from_date,
+            request.to_date,
+            request.duration_type
+          )}
+        </span>
+        {isHalfDay && (
+          <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
+            {halfLabel}
+          </span>
+        )}
+      </span>
+    );
   };
 
   const [employee, setEmployee] = useState(null);
   const userId =
     localStorage.getItem("employee_id") || localStorage.getItem("user_id");
 
-  useEffect(() => {
-    if (userId) {
-      employeeAPI.getEmployeeById(
-        userId,
-        (data) => {
-          // Try to handle different API response shapes
-          let emp = data?.data || data?.results || data;
-          // If array, take first
-          if (Array.isArray(emp)) emp = emp[0];
-          setEmployee(emp);
-        },
-        (error) => {
-          setEmployee({ error: true });
-        }
-      );
-    }
-  }, [userId]);
-
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Filters - Updated Grid */}
-      <div
-        className={`grid grid-cols-4 items-end gap-3 sm:grid-cols-${
-          isAdmin ? 3 : 4
-        } sm:gap-4 md:grid-cols-${isAdmin ? 3 : 4}`}
-      >
-        <div>
-          <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
-            Search by Name or Type
-          </label>
-          <input
-            type="text"
-            placeholder="Search requests..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-xs text-navy-700 placeholder-gray-400 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm"
-          />
-        </div>
+    <div className="space-y-4 p-4 sm:p-6">
+      {/* Filters Section */}
+      <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
+        {/* Search by Name or Type */}
+        {isSuperAdmin === "true" && (
+          <div>
+            <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+              Search by Name or Type
+            </label>
+            <input
+              type="text"
+              placeholder="Search requests..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-xs text-navy-700 placeholder-gray-400 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm"
+            />
+          </div>
+        )}
 
+        {/* Filter by Status */}
         <div>
           <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
             Filter by Status
@@ -398,18 +464,46 @@ export default function LeaveRequestsList() {
           </select>
         </div>
 
+        {/* Filter by Request Type */}
         <div>
-          <LeavePermissionRequest onClose={loadLeaveRequests} />
+          <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+            Filter by Request Type
+          </label>
+          <select
+            value={requestTypeFilter}
+            onChange={(e) => {
+              setRequestTypeFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-xs text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm"
+          >
+            <option value="all">All Types</option>
+            <option value="Leave">Leave</option>
+            <option value="Permission">Permission</option>
+          </select>
         </div>
-        <div>
-          {/* Available Leaves Card for non-super admin users */}
-          {!isAdmin && (
-            <div className="inline-flex w-full max-w-full flex-nowrap items-center gap-2 overflow-hidden rounded-lg bg-brand-500 p-3 text-xs font-bold  text-white transition duration-200 hover:bg-brand-600 sm:p-3 sm:text-sm md:p-2.5 md:text-base lg:px-10 lg:text-lg">
-              <p className="  text-[5px] font-bold text-white-700 text-white justify-between dark:text-white sm:text-sm md:text-base lg:text-lg">
+
+        {/* Available Leaves Card for non-super admin users */}
+        {!isAdmin && (
+          <div className="flex w-full justify-center">
+            <div
+              className="inline-flex w-full max-w-md 
+      items-center justify-center 
+      gap-2 rounded-lg border-2 border-gray-300 
+      px-3 py-1.5 
+      text-xs font-bold text-white sm:text-sm 
+      md:text-base lg:text-lg"
+            >
+              <p className="text-[14px] text-blue-500 dark:text-white sm:text-[13.5px]">
                 Available Leaves: {availableLeaveBalance}
               </p>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* LeavePermissionRequest Button */}
+        <div>
+          <LeavePermissionRequest onClose={loadLeaveRequests} />
         </div>
       </div>
 
@@ -439,10 +533,160 @@ export default function LeaveRequestsList() {
 
       {/* Requests Table */}
       {!loading && paginatedRequests.length > 0 && (
-        <div className="overflow-hidden rounded-lg bg-white shadow-lg dark:bg-navy-800">
+        <div className="overflow-hidden rounded-lg bg-white shadow-none dark:bg-navy-800 xl:shadow-lg">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
+            {/* Premium Card Layout for Mobile, Table for Desktop */}
+            <div className="block md:hidden">
+              {paginatedRequests.map((request, index) => (
+                <div
+                  key={request.id || index}
+                  className="mb-8 flex flex-col gap-2 rounded-3xl border border-gray-100 bg-white px-4 py-4 text-[15px] shadow-xl dark:border-gray-700 dark:bg-navy-800 dark:shadow-none"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-base font-bold text-blue-700 dark:border-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </div>
+                    <h2 className="ml-1 text-base font-extrabold text-navy-900 dark:text-white">
+                      Leave Request
+                    </h2>
+                  </div>
+                  <hr className="my-2 border-gray-200 dark:border-gray-700" />
+                  <div className="mb-1 flex items-center gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-brand-100 dark:bg-brand-900">
+                      <img
+                        className="h-full w-full rounded-full object-cover"
+                        src={
+                          request?.profile_picture &&
+                          request.profile_picture.trim() !== ""
+                            ? request.profile_picture.startsWith("data:")
+                              ? request.profile_picture
+                              : `${request.profile_picture}`
+                            : request?.gender?.trim().toLowerCase() === "male"
+                            ? maleProfile
+                            : request?.gender?.trim().toLowerCase() === "female"
+                            ? femaleProfile
+                            : maleProfile
+                        }
+                        alt="Profile"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[15px] font-bold text-navy-900 dark:text-white">
+                        {request.employee_name || "-"}
+                      </div>
+                      {!(isAdmin && request.employee_name === userName) && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {request.department_name || "-"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-xs font-semibold text-gray-400 dark:text-gray-500">
+                        Request Type
+                      </div>
+                      <div className="text-[15px] font-bold text-navy-900 dark:text-white">
+                        {request.request_type || "-"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-xs font-semibold text-gray-400 dark:text-gray-500">
+                        Leave Type
+                      </div>
+                      <div className="text-[15px] font-bold text-navy-900 dark:text-white">
+                        {request.request_type === "Permission"
+                          ? "-"
+                          : request.leave_type || "-"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-xs font-semibold text-gray-400 dark:text-gray-500">
+                        Start Date
+                      </div>
+                      <div className="text-[15px] font-bold text-navy-900 dark:text-white">
+                        {request.from_date
+                          ? new Date(request.from_date).toLocaleDateString()
+                          : "-"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-xs font-semibold text-gray-400 dark:text-gray-500">
+                        Duration
+                      </div>
+                      <div className="text-[15px] font-bold text-navy-900 dark:text-white">
+                        {renderDuration(request)}
+                      </div>
+                    </div>
+                  </div>
+                  <hr className="my-2 border-gray-200 dark:border-gray-700" />
+                  <div className="flex flex-col gap-0.5">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500">
+                      Status
+                    </div>
+                    <div>
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-0.5 text-[13px] font-bold ${getStatusColor(
+                          request.status
+                        )}`}
+                      >
+                        {getStatusIcon(request.status)}
+                        {request.status
+                          ? String(request.status).charAt(0).toUpperCase() +
+                            String(request.status).slice(1)
+                          : "Unknown"}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Action Buttons */}
+                  <div className="mt-2 flex items-center justify-center gap-6">
+                    <button
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowDetailsModal(true);
+                      }}
+                      className="bg-transparent m-0 flex items-center justify-center border-none p-0 text-xl text-blue-600 outline-none dark:text-blue-400"
+                      title="View Details"
+                      style={{ lineHeight: 1 }}
+                    >
+                      <FaEye size={20} />
+                    </button>
+                    {request.status &&
+                      String(request.status).toLowerCase() === "pending" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              const editData = request.id
+                                ? request
+                                : { ...request, id: request.leaveid };
+                              setEditRequestData(editData);
+                              setShowRequestModal(true);
+                            }}
+                            className="bg-transparent m-0 flex items-center justify-center border-none p-0 text-xl text-blue-600 outline-none dark:text-blue-400"
+                            title="Edit Leave Request"
+                            style={{ lineHeight: 1 }}
+                          >
+                            <MdEdit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(request.leaveid)}
+                            disabled={loading}
+                            className="bg-transparent m-0 flex items-center justify-center border-none p-0 text-xl text-red-600 outline-none dark:text-red-400"
+                            title="Delete"
+                            style={{ lineHeight: 1 }}
+                          >
+                            <FaTrash size={18} />
+                          </button>
+                        </>
+                      )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <table className="hidden w-full md:table">
+              <thead className="md:table-header-group">
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-navy-700">
                   <th className="px-4 py-4 text-left text-sm font-bold text-navy-700 dark:text-white">
                     S.No
@@ -450,7 +694,7 @@ export default function LeaveRequestsList() {
                   <th className="px-6 py-4 text-left text-sm font-bold text-navy-700 dark:text-white">
                     Employee
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-navy-700 dark:text-white">
+                  <th className="px-6 py-4 text-left text-[13px] font-bold text-navy-700 dark:text-white">
                     Request Type
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-navy-700 dark:text-white">
@@ -470,11 +714,11 @@ export default function LeaveRequestsList() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="md:table-row-group">
                 {paginatedRequests.map((request, index) => (
                   <tr
                     key={request.id || index}
-                    className="border-b border-gray-200 transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-navy-700"
+                    className="border-b border-gray-200 transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-navy-700 md:table-row"
                   >
                     <td className="px-4 py-4 font-bold text-navy-700 dark:text-white">
                       {(currentPage - 1) * itemsPerPage + index + 1}
@@ -505,7 +749,6 @@ export default function LeaveRequestsList() {
                           <p className="font-bold text-navy-700 dark:text-white">
                             {request.employee_name || "-"}
                           </p>
-                          {/* Hide department if admin is viewing their own request */}
                           {!(isAdmin && request.employee_name === userName) && (
                             <p className="text-xs text-gray-600 dark:text-gray-400">
                               {request.department_name || "-"}
@@ -519,7 +762,6 @@ export default function LeaveRequestsList() {
                         {request.request_type || "-"}
                       </span>
                     </td>
-
                     <td className="px-6 py-4">
                       <span className="font-semibold text-navy-700 dark:text-white">
                         {request.request_type === "Permission"
@@ -527,7 +769,6 @@ export default function LeaveRequestsList() {
                           : request.leave_type || "-"}
                       </span>
                     </td>
-
                     <td className="px-6 py-4">
                       <span className="text-navy-700 dark:text-white">
                         {request.from_date
@@ -537,12 +778,7 @@ export default function LeaveRequestsList() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-navy-700 dark:text-white">
-                        {request.request_type === "Permission"
-                          ? `2 Hours`
-                          : `${calculateDuration(
-                              request.from_date,
-                              request.to_date
-                            )}` || "-"}
+                        {renderDuration(request)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -560,55 +796,43 @@ export default function LeaveRequestsList() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setShowDetailsModal(true);
+                          }}
+                          className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
+                          title="View Details"
+                        >
+                          <FaEye />
+                        </button>
                         {request.status &&
-                        String(request.status).toLowerCase() === "pending" ? (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedRequest(request);
-                                setShowDetailsModal(true);
-                              }}
-                              className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
-                              title="View Details"
-                            >
-                              <FaEye />
-                            </button>
-                            <button
-                              onClick={() => {
-                                // Ensure editRequestData has an id property for update API
-                                const editData = request.id
-                                  ? request
-                                  : { ...request, id: request.leaveid };
-                                setEditRequestData(editData);
-                                setShowRequestModal(true);
-                              }}
-                              className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
-                              title="Edit Leave Request"
-                            >
-                              <MdEdit size={20} />
-                            </button>
-
-                            <button
-                              onClick={() => handleDelete(request.leaveid)}
-                              disabled={loading}
-                              className="rounded-lg p-2 text-red-600 transition hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900"
-                              title="Delete"
-                            >
-                              <FaTrash />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setShowDetailsModal(true);
-                            }}
-                            className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
-                            title="View Details"
-                          >
-                            <FaEye />
-                          </button>
-                        )}
+                          String(request.status).toLowerCase() ===
+                            "pending" && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  const editData = request.id
+                                    ? request
+                                    : { ...request, id: request.leaveid };
+                                  setEditRequestData(editData);
+                                  setShowRequestModal(true);
+                                }}
+                                className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
+                                title="Edit Leave Request"
+                              >
+                                <MdEdit size={20} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(request.leaveid)}
+                                disabled={loading}
+                                className="rounded-lg p-2 text-red-600 transition hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900"
+                                title="Delete"
+                              >
+                                <FaTrash />
+                              </button>
+                            </>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -653,7 +877,6 @@ export default function LeaveRequestsList() {
                         </button>
                       ));
                     }
-                    // Sliding window logic
                     let start = currentPage - 1;
                     let end = currentPage + 1;
                     if (start < 1) {
@@ -699,13 +922,13 @@ export default function LeaveRequestsList() {
 
       {/* Details Modal */}
       {showDetailsModal && selectedRequest && (
-        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-2 backdrop-blur-sm sm:p-4">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-2 backdrop-blur-sm sm:p-4">
           <div className="relative max-h-[95vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl dark:bg-navy-800 sm:rounded-2xl">
             {/* Modal Header */}
             <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-navy-800 sm:px-6 sm:py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1 sm:gap-2">
-                  <FaCalendar className="text-base text-brand-500 sm:text-lg md:text-xl" />
+                  <FaCalendar className="text-blue-650 text-base sm:text-lg md:text-xl" />
                   <h2 className="text-sm font-bold text-navy-700 dark:text-white sm:text-base md:text-lg lg:text-2xl">
                     Leave Request Details
                   </h2>
@@ -844,19 +1067,51 @@ export default function LeaveRequestsList() {
                   </div>
                 </div>
 
-                {/* End Date */}
-                <div>
-                  <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
-                    End Date
-                  </label>
-                  <div className="rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-navy-700 sm:px-4 sm:py-2.5">
-                    <span className="text-xs text-navy-700 dark:text-white sm:text-sm">
-                      {selectedRequest.to_date
-                        ? new Date(selectedRequest.to_date).toLocaleDateString()
-                        : "-"}
-                    </span>
+                {/* End Date - Only for non-Permission */}
+                {selectedRequest.request_type !== "Permission" && (
+                  <div>
+                    <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+                      End Date
+                    </label>
+                    <div className="rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-navy-700 sm:px-4 sm:py-2.5">
+                      <span className="text-xs text-navy-700 dark:text-white sm:text-sm">
+                        {selectedRequest.to_date
+                          ? new Date(
+                              selectedRequest.to_date
+                            ).toLocaleDateString()
+                          : "-"}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Start Time - Only for Permission */}
+                {selectedRequest.request_type === "Permission" && (
+                  <div>
+                    <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+                      Start Time
+                    </label>
+                    <div className="rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-navy-700 sm:px-4 sm:py-2.5">
+                      <span className="text-xs text-navy-700 dark:text-white sm:text-sm">
+                        {selectedRequest.start_time || "-"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* End Time - Only for Permission */}
+                {selectedRequest.request_type === "Permission" && (
+                  <div>
+                    <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
+                      End Time
+                    </label>
+                    <div className="rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-navy-700 sm:px-4 sm:py-2.5">
+                      <span className="text-xs text-navy-700 dark:text-white sm:text-sm">
+                        {selectedRequest.end_time || "-"}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Duration */}
                 <div>
@@ -865,12 +1120,7 @@ export default function LeaveRequestsList() {
                   </label>
                   <div className="rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-navy-700 sm:px-4 sm:py-2.5">
                     <span className="text-xs text-navy-700 dark:text-white sm:text-sm">
-                      {selectedRequest.request_type === "Permission"
-                        ? `2 Hours`
-                        : calculateDuration(
-                            selectedRequest.from_date,
-                            selectedRequest.to_date
-                          ) || "-"}
+                      {selectedRequest ? renderDuration(selectedRequest) : "-"}
                     </span>
                   </div>
                 </div>
@@ -999,20 +1249,15 @@ export default function LeaveRequestsList() {
 
               {(!selectedRequest.status ||
                 String(selectedRequest.status).toLowerCase() !== "pending") && (
-                <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 dark:border-gray-700 sm:flex-row sm:pt-6 lg:col-span-2">
-                  {/* <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="w-full rounded-lg border-2 border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-navy-700 transition duration-200 hover:bg-gray-100 dark:border-gray-700 dark:bg-navy-700 dark:text-white dark:hover:bg-navy-600 sm:py-3 sm:text-sm"
-                  >
-                    Close
-                  </button> */}
+                <div className="flex w-full justify-center border-t border-gray-200 pt-4 dark:border-gray-700 sm:pt-6 lg:col-span-2">
                   {isAdmin && (
                     <button
                       onClick={() => handleDelete(selectedRequest.leaveid)}
                       disabled={loading}
-                      className="rounded-lg bg-orange-500 px-4 py-2.5 text-xs font-bold text-white transition duration-200 hover:bg-orange-600 disabled:opacity-50 dark:bg-orange-600 dark:hover:bg-orange-700 sm:py-3 sm:text-sm"
+                      className="flex items-center justify-center rounded-lg bg-orange-500 px-8 py-3 text-sm font-bold text-white shadow-md transition duration-200 hover:bg-orange-600 disabled:opacity-50 dark:bg-orange-600 dark:hover:bg-orange-700"
+                      style={{ minWidth: "140px" }}
                     >
-                      <FaTrash className="mr-2 inline" /> Delete
+                      <FaTrash className="mr-2 text-lg" /> Delete
                     </button>
                   )}
                 </div>
@@ -1038,7 +1283,7 @@ export default function LeaveRequestsList() {
 
       {/* Reject Reason Modal */}
       {showRejectModal && requestToReject && (
-        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-2 backdrop-blur-sm sm:p-4">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-2 backdrop-blur-sm sm:p-4">
           <div className="relative w-full max-w-md rounded-xl bg-white shadow-2xl dark:bg-navy-800 sm:rounded-2xl">
             {/* Modal Header */}
             <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700 sm:px-6 sm:py-4">

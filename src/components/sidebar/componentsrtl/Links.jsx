@@ -40,7 +40,7 @@ export function SidebarLinks(props) {
                   {route.icon ? route.icon : <HiUserGroup />}{" "}
                 </span>
                 <p
-                  className={`leading-1 flex ms-4 ${
+                  className={`leading-1 ms-4 flex ${
                     activeRoute(route.path) === true
                       ? "font-bold text-navy-700 dark:text-white"
                       : "font-medium text-gray-600"
@@ -50,7 +50,7 @@ export function SidebarLinks(props) {
                 </p>
               </li>
               {activeRoute(route.path) ? (
-                <div className="absolute top-px h-9 w-1 rounded-lg bg-brand-500 end-0 dark:bg-brand-400" />
+                <div className="absolute end-0 top-px h-9 w-1 rounded-lg bg-blue-500 dark:bg-brand-400" />
               ) : null}
             </div>
           </Link>

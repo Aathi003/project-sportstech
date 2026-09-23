@@ -9,6 +9,20 @@ export default function FixedPlugin(props) {
     document.body.classList.contains("dark")
   );
 
+  // Load dark mode preference from localStorage on mount
+  React.useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode");
+    if (savedDarkMode !== null) {
+      const isDarkMode = savedDarkMode === "true";
+      setDarkmode(isDarkMode);
+      if (isDarkMode) {
+        document.body.classList.add("dark");
+      } else {
+        document.body.classList.remove("dark");
+      }
+    }
+  }, []);
+
   return (
     <button
       className="border-px fixed bottom-[30px] right-[35px] !z-[99] flex h-[60px] w-[60px] items-center justify-center rounded-full border-[#6a53ff] bg-gradient-to-br from-brandLinear to-blueSecondary p-0"
@@ -16,9 +30,11 @@ export default function FixedPlugin(props) {
         if (darkmode) {
           document.body.classList.remove("dark");
           setDarkmode(false);
+          localStorage.setItem("darkMode", "false");
         } else {
           document.body.classList.add("dark");
           setDarkmode(true);
+          localStorage.setItem("darkMode", "true");
         }
       }}
       {...rest}

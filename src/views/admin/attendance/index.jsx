@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import Card from "components/card";
 import Pagination from "components/common/Pagination";
 import attendanceAPI from "services/attendanceAPI";
@@ -42,6 +42,9 @@ const Attendance = () => {
     department: "All",
   });
   const [availableLeaveBalance, setAvailableLeaveBalance] = useState(0);
+  const [statusModal, setStatusModal] = useState({ open: false, row: null });
+  const [modalComment, setModalComment] = useState("");
+  const [modalSubmitting, setModalSubmitting] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
   const fetchAttendance = () => {
@@ -105,14 +108,32 @@ const Attendance = () => {
 
           const transformedData = filteredAttendance.map((rec, index) => ({
             sno: rec.sno || index + 1,
+            attendance_id: rec.id || rec.attendance_id || rec.attendanceid,
+            emp_id: rec.employee || rec.emp_id,
             emp_code: rec.emp_code || rec.employee_code || "-",
             name: rec.employee_name || rec.name || rec.user_name || "-",
             department: rec.department || rec.department_name || "-",
             date: rec.date || "-",
-            punch_in: rec.punch_in || "-",
-            punch_out: rec.punch_out || "-",
-            total_hours: rec.total_hours || "-",
-            status: rec.status || "-",
+            punch_in: rec.is_weekoff
+              ? "Weekoff"
+              : rec.is_holiday
+              ? "Holiday"
+              : rec.punch_in || "-",
+            punch_out: rec.is_weekoff
+              ? "Weekoff"
+              : rec.is_holiday
+              ? "Holiday"
+              : rec.punch_out || "-",
+            total_hours: rec.is_weekoff
+              ? "Weekoff"
+              : rec.is_holiday
+              ? "Holiday"
+              : rec.total_hours || "-",
+            status: rec.is_weekoff
+              ? "Weekoff"
+              : rec.is_holiday
+              ? "Holiday"
+              : rec.status || "-",
           }));
 
           setRecords(transformedData);
@@ -136,7 +157,6 @@ const Attendance = () => {
         }
       },
       (error) => {
-        console.log("Attendance API error:", error);
         if (error?.status === 401) {
           logout();
         }
@@ -178,20 +198,73 @@ const Attendance = () => {
     }
   }, []);
 
-  // Format date for display
-  const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return "-";
+  // Helper: returns true if punch-in time is after 09:45
+  const isLatePunchIn = (timeStr) => {
+    if (!timeStr || timeStr === "-") return false;
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      return hours > 9 || (hours === 9 && minutes >= 46);
     } catch {
-      return dateStr;
+      return false;
     }
   };
+
+  const handleOpenAbsentModal = useCallback((row) => {
+    setStatusModal({ open: true, row });
+    setModalComment("");
+  }, []);
+
+  const handleMarkAbsent = () => {
+    const row = statusModal.row;
+    if (!row) return;
+    setModalSubmitting(true);
+    attendanceAPI.updateAttendanceStatus(
+      {
+        attendance_id: row.attendance_id,
+        emp_id: 1,
+        is_present: false,
+        comment: modalComment,
+      },
+      () => {
+        setRecords((prev) =>
+          prev.map((r) =>
+            r.attendance_id === row.attendance_id
+              ? { ...r, status: "Absent" }
+              : r
+          )
+        );
+        setStatusModal({ open: false, row: null });
+        setModalSubmitting(false);
+      },
+      () => {
+        showError("Failed to update attendance.");
+        setModalSubmitting(false);
+      }
+    );
+  };
+
+  const handleMarkPresent = useCallback((row) => {
+    attendanceAPI.updateAttendanceStatus(
+      {
+        attendance_id: row.attendance_id,
+        emp_id: 1,
+        is_present: true,
+        comment: "",
+      },
+      () => {
+        setRecords((prev) =>
+          prev.map((r) =>
+            r.attendance_id === row.attendance_id
+              ? { ...r, status: "Present" }
+              : r
+          )
+        );
+      },
+      () => {
+        showError("Failed to update attendance.");
+      }
+    );
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -272,11 +345,27 @@ const Attendance = () => {
             PUNCH IN
           </p>
         ),
-        cell: (info) => (
-          <p className="whitespace-nowrap text-xs text-navy-700 dark:text-white sm:text-sm">
-            {info.getValue()}
-          </p>
-        ),
+        cell: (info) => {
+          const value = info.getValue();
+          const isLate = isLatePunchIn(value);
+          return (
+            <p
+              className={`whitespace-nowrap text-xs font-bold sm:text-sm ${
+                isLate
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-navy-700 dark:text-white"
+              }`}
+              title={isLate ? "Late punch-in" : ""}
+            >
+              {value}
+              {isLate && (
+                <span className="ml-1 text-[10px] font-semibold text-red-500">
+                  (Late)
+                </span>
+              )}
+            </p>
+          );
+        },
       }),
       columnHelper.accessor("punch_out", {
         id: "punch_out",
@@ -313,23 +402,48 @@ const Attendance = () => {
         ),
         cell: (info) => {
           const status = info.getValue();
+          const row = info.row.original;
           const isPresent =
             status === "Present" || status === "present" || status === true;
+          const isSpecial = status === "Weekoff" || status === "Holiday";
+
+          if (!isSuperAdmin || isSpecial) {
+            return (
+              <span
+                className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold sm:px-3 sm:py-1.5 sm:text-sm ${
+                  isPresent
+                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                }`}
+              >
+                {isPresent ? "Present" : "Absent"}
+              </span>
+            );
+          }
+
+          if (isPresent) {
+            return (
+              <button
+                onClick={() => handleOpenAbsentModal(row)}
+                className="inline-block cursor-pointer rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700 transition hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 sm:px-3 sm:py-1.5 sm:text-sm"
+              >
+                Present
+              </button>
+            );
+          }
+
           return (
-            <span
-              className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold sm:px-3 sm:py-1.5 sm:text-sm ${
-                isPresent
-                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                  : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-              }`}
+            <button
+              onClick={() => handleMarkPresent(row)}
+              className="inline-block cursor-pointer rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 sm:px-3 sm:py-1.5 sm:text-sm"
             >
-              {isPresent ? "Present" : "Not Present"}
-            </span>
+              Absent
+            </button>
           );
         },
       }),
     ],
-    [currentPage]
+    [currentPage, isSuperAdmin, handleOpenAbsentModal, handleMarkPresent]
   );
 
   // Filter records based on search
@@ -347,12 +461,17 @@ const Attendance = () => {
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter((rec) => {
+        const isPresent =
+          rec.status === "Present" ||
+          rec.status === "present" ||
+          rec.status === true;
+        const displayStatus = isPresent ? "present" : "not present";
         return (
           (rec.name && rec.name.toLowerCase().includes(searchLower)) ||
           (rec.emp_code && rec.emp_code.toLowerCase().includes(searchLower)) ||
           (rec.department &&
             rec.department.toLowerCase().includes(searchLower)) ||
-          (rec.status && rec.status.toLowerCase().includes(searchLower))
+          displayStatus.startsWith(searchLower)
         );
       });
     }
@@ -391,6 +510,7 @@ const Attendance = () => {
 
   const punchOutDone = punchOutCount;
   const stillWorking = reportMeta?.still_working || 0;
+
   const table = useReactTable({
     data: paginatedRecords,
     columns,
@@ -402,18 +522,60 @@ const Attendance = () => {
 
   return (
     <div className="mt-3 grid h-full grid-cols-1 gap-5">
+      {/* Mark Absent Modal */}
+      {statusModal.open && (
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-navy-800">
+            <h3 className="mb-1 text-lg font-bold text-navy-700 dark:text-white">
+              Mark as Absent
+            </h3>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              {statusModal.row?.name} — {statusModal.row?.date}
+            </p>
+            <textarea
+              value={modalComment}
+              onChange={(e) => setModalComment(e.target.value)}
+              placeholder="Enter reason for absence..."
+              rows={3}
+              className="w-full resize-none rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white"
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                onClick={() => setStatusModal({ open: false, row: null })}
+                disabled={modalSubmitting}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-200 disabled:opacity-60 dark:bg-navy-700 dark:text-gray-300 dark:hover:bg-navy-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMarkAbsent}
+                disabled={modalSubmitting}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-60"
+              >
+                {modalSubmitting ? "Submitting..." : "Mark Absent"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Summary Cards */}
       <div
-        className={`grid grid-cols-4 gap-3 ${isSuperAdmin ? "sm:grid-cols-3" : "sm:grid-cols-4"} sm:gap-4`}
+        className={`grid ${
+          isSuperAdmin
+            ? "grid-cols-1 sm:grid-cols-3"
+            : "grid-cols-2 sm:grid-cols-3"
+        } gap-2 sm:gap-4`}
       >
-        <Card extra="p-3 sm:p-4 flex flex-col items-center justify-center">
-          <p className="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
-            Total Employees Data
-          </p>
-          <p className="text-xl font-bold text-navy-700 dark:text-white sm:text-2xl">
-            {records.length}
-          </p>
-        </Card>
+        {isSuperAdmin && (
+          <Card extra="p-3 sm:p-4 flex flex-col items-center justify-center">
+            <p className="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
+              Total Employees Data
+            </p>
+            <p className="text-xl font-bold text-navy-700 dark:text-white sm:text-2xl">
+              {records.length}
+            </p>
+          </Card>
+        )}
         <Card extra="p-3 sm:p-4 flex flex-col items-center justify-center">
           <p className="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
             Present
@@ -451,32 +613,10 @@ const Attendance = () => {
               <div className="text-base font-bold text-navy-700 dark:text-white sm:text-xl">
                 Attendance Report
               </div>
-              {/* <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 sm:gap-3 sm:text-sm">
-                {dateMode === "single" ? (
-                  <span>
-                    <strong>Date:</strong> {formatDisplayDate(selectedDate)}
-                  </span>
-                ) : (
-                  <>
-                    <span>
-                      <strong>From:</strong> {formatDisplayDate(fromDate)}
-                    </span>
-                    <span>
-                      <strong>To:</strong> {formatDisplayDate(toDate)}
-                    </span>
-                  </>
-                )}
-                <span>
-                  <strong>Department:</strong> {reportMeta.department || "All"}
-                </span>
-                <span>
-                  <strong>Records:</strong> {filteredRecords.length}
-                </span>
-              </div> */}
             </div>
             <button
               onClick={fetchAttendance}
-              className="linear w-full rounded-lg bg-brand-500 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-500 dark:active:bg-brand-600 sm:w-auto sm:text-base"
+              className="linear w-full rounded-lg bg-blue-500 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-blue-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-blue-500 dark:active:bg-brand-600 sm:w-auto sm:text-base"
             >
               ↻ Refresh
             </button>
@@ -492,7 +632,7 @@ const Attendance = () => {
                   onClick={() => setDateMode("single")}
                   className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:flex-none sm:text-sm ${
                     dateMode === "single"
-                      ? "bg-brand-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-navy-600"
                   }`}
                 >
@@ -502,7 +642,7 @@ const Attendance = () => {
                   onClick={() => setDateMode("range")}
                   className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:flex-none sm:text-sm ${
                     dateMode === "range"
-                      ? "bg-brand-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-navy-600"
                   }`}
                 >
@@ -519,7 +659,27 @@ const Attendance = () => {
                   <input
                     type="date"
                     value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
+                    max={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const [year, month, day] = value.split("-").map(Number);
+                      const date = new Date(value);
+                      if (
+                        value &&
+                        (!year ||
+                          !month ||
+                          !day ||
+                          !(date instanceof Date) ||
+                          isNaN(date) ||
+                          date.getFullYear() !== year ||
+                          date.getMonth() + 1 !== month ||
+                          date.getDate() !== day)
+                      ) {
+                        setSelectedDate("");
+                        return;
+                      }
+                      setSelectedDate(value);
+                    }}
                     className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:w-auto"
                   />
                 </div>
@@ -535,10 +695,28 @@ const Attendance = () => {
                     <input
                       type="date"
                       value={fromDate}
+                      max={new Date().toISOString().split("T")[0]}
                       onChange={(e) => {
-                        setFromDate(e.target.value);
-                        if (toDate && e.target.value > toDate) {
-                          setToDate(e.target.value);
+                        const value = e.target.value;
+                        const [year, month, day] = value.split("-").map(Number);
+                        const date = new Date(value);
+                        if (
+                          value &&
+                          (!year ||
+                            !month ||
+                            !day ||
+                            !(date instanceof Date) ||
+                            isNaN(date) ||
+                            date.getFullYear() !== year ||
+                            date.getMonth() + 1 !== month ||
+                            date.getDate() !== day)
+                        ) {
+                          setFromDate("");
+                          return;
+                        }
+                        setFromDate(value);
+                        if (toDate && value > toDate) {
+                          setToDate(value);
                         }
                       }}
                       className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:w-auto"
@@ -552,7 +730,27 @@ const Attendance = () => {
                       type="date"
                       value={toDate}
                       min={fromDate}
-                      onChange={(e) => setToDate(e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const [year, month, day] = value.split("-").map(Number);
+                        const date = new Date(value);
+                        if (
+                          value &&
+                          (!year ||
+                            !month ||
+                            !day ||
+                            !(date instanceof Date) ||
+                            isNaN(date) ||
+                            date.getFullYear() !== year ||
+                            date.getMonth() + 1 !== month ||
+                            date.getDate() !== day)
+                        ) {
+                          setToDate("");
+                          return;
+                        }
+                        setToDate(value);
+                      }}
                       className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:w-auto"
                     />
                   </div>
@@ -561,45 +759,48 @@ const Attendance = () => {
             </div>
 
             {/* Department + Search Row */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-              {/* Department Filter */}
-              <div className="flex items-center gap-2">
-                <label className="shrink-0 text-xs font-semibold text-gray-600 dark:text-gray-300 sm:text-sm">
-                  Dept:
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
-                  className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:w-auto"
-                >
-                  <option value="">All Departments</option>
-                  {departments.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {isSuperAdmin && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                {/* Department Filter - Only for Super Admin */}
 
-              {/* Search */}
-              <div className="flex flex-1 items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Search by name, emp code, status..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 placeholder-gray-400 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white dark:placeholder-gray-500"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="shrink-0 rounded-lg bg-red-100 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800 sm:text-sm"
+                <div className="flex items-center gap-2">
+                  <label className="shrink-0 text-xs font-semibold text-gray-600 dark:text-gray-300 sm:text-sm">
+                    Dept:
+                  </label>
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:w-auto"
                   >
-                    Clear
-                  </button>
-                )}
+                    <option value="">All Departments</option>
+                    {departments.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Search */}
+                <div className="flex flex-1 items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search by name, emp code, department, status..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 placeholder-gray-400 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white dark:placeholder-gray-500"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="shrink-0 rounded-lg bg-red-100 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800 sm:text-sm"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -648,21 +849,63 @@ const Attendance = () => {
                 ))}
               </thead>
               <tbody>
-                {table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-2 py-2.5 sm:px-4 sm:py-3">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {table.getRowModel().rows.map((row) => {
+                  const isWeekoff = row.original.punch_in === "Weekoff";
+                  const isHoliday = row.original.punch_in === "Holiday";
+
+                  if (isWeekoff || isHoliday) {
+                    const label = isWeekoff ? "Week Off" : "Holiday";
+                    const visibleCells = row.getVisibleCells();
+                    const identityCells = visibleCells.slice(0, 5);
+                    const spanCount = visibleCells.length - 5;
+
+                    return (
+                      <tr
+                        key={row.id}
+                        className="dark:bg-red-950 border-b border-red-200 bg-red-50 dark:border-red-800"
+                      >
+                        {identityCells.map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="px-2 py-2.5 opacity-40 sm:px-4 sm:py-3"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        ))}
+                        <td
+                          colSpan={spanCount}
+                          className="px-2 py-2.5 text-center sm:px-4 sm:py-3"
+                        >
+                          <span className="inline-block rounded-full bg-red-200 px-6 py-1.5 text-sm font-bold tracking-wide text-red-700 dark:bg-red-800 dark:text-red-200">
+                            {label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className="border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="px-2 py-2.5 sm:px-4 sm:py-3"
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

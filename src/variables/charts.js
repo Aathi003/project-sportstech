@@ -9,7 +9,7 @@ export const getDepartmentBarChartData = (apiData) => {
     {
       name: "Employees",
       data: employeeCounts,
-      color: "#FF8800",
+      color: "#5E7AC4",
     },
   ];
 };
@@ -39,7 +39,6 @@ export const getDepartmentBarChartOptions = (apiData) => {
       enabled: false,
     },
 
-    // 🔥 SAME COLOR AS DAILY TRAFFIC
     fill: {
       type: "gradient",
       gradient: {
@@ -51,7 +50,7 @@ export const getDepartmentBarChartOptions = (apiData) => {
           [
             {
               offset: 0,
-              color: "#4318FF", // EXACT Daily Traffic blue
+              color: "#5E7AC4", // EXACT Daily Traffic blue
               opacity: 1,
             },
             {
@@ -352,7 +351,7 @@ export const barChartOptionsWeeklyRevenue = {
   plotOptions: {
     bar: {
       borderRadius: 10,
-      columnWidth: "20px",
+      columnWidth: "20%",
     },
   },
 };

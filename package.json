@@ -23,6 +23,7 @@
     "apexcharts": "3.35.5",
     "axios": "^1.13.2",
     "jspdf": "^4.2.0",
+    "jszip": "^3.10.2",
     "pdfkit": "^0.17.2",
     "react": "19.0.0",
     "react-apexcharts": "1.4.0",

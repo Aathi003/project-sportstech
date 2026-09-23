@@ -139,6 +139,30 @@ export default function LeavePermissionRequest({
     requestType: 0,
   });
 
+  // Reset forms when modal opens (so old/invalid data is cleared)
+  useEffect(() => {
+    if (isOpen && !isEditMode) {
+      setLeaveForm({
+        leave_type: "",
+        request_type: "",
+        from_date: "",
+        to_date: "",
+        end_date: "",
+        leave_duration: "fullday",
+        half_day_type: "first",
+        leave_reason: "",
+        requestType: 0,
+      });
+      setPermissionForm({
+        from_date: "",
+        start_time: "",
+        end_time: "",
+        permission_reason: "",
+        requestType: 0,
+      });
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     // Only load if not provided as props
     if (propsLeaveTypes.length === 0) {
@@ -424,7 +448,7 @@ export default function LeavePermissionRequest({
       {!isEditMode && (
         <button
           onClick={() => setIsOpen(true)}
-          className="inline-flex w-full max-w-full flex-nowrap items-center gap-2 overflow-hidden rounded-lg bg-brand-500 px-3 py-2 text-xs font-bold text-white transition duration-200 hover:bg-brand-600 sm:px-5 sm:py-2 sm:text-sm md:px-8 md:py-2 md:text-base lg:px-10 lg:text-lg"
+          className="inline-flex w-full max-w-full flex-nowrap items-center gap-2 overflow-hidden rounded-lg bg-blue-500 px-3 py-2 text-xs font-bold text-white transition duration-200 hover:bg-blue-600 sm:px-5 sm:py-2 sm:text-sm md:px-8 md:py-2 md:text-base lg:px-10 lg:text-lg"
           style={{ minWidth: 0 }}
         >
           <FaCalendarPlus className="flex-shrink-0 text-base md:text-lg" />
@@ -436,13 +460,13 @@ export default function LeavePermissionRequest({
 
       {/* Modal Overlay */}
       {isOpen && (
-        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-2 backdrop-blur-sm sm:p-4">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-2 backdrop-blur-sm backdrop-blur-sm sm:p-4">
           <div className="relative max-h-[95vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl dark:bg-navy-800 sm:rounded-2xl">
             {/* Modal Header */}
             <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-navy-800 sm:px-6 sm:py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1 sm:gap-2">
-                  <FaCalendarPlus className="text-base text-brand-500 sm:text-lg md:text-xl" />
+                  <FaCalendarPlus className="text-blue-650 text-base sm:text-lg md:text-xl" />
                   <h2 className="text-sm font-bold text-navy-700 dark:text-white sm:text-base md:text-lg lg:text-2xl">
                     {isEditMode
                       ? "Update Request"
@@ -619,6 +643,7 @@ export default function LeavePermissionRequest({
                     <div>
                       <label className="mb-2 block text-xs font-bold text-navy-700 dark:text-white sm:text-sm">
                         Reason
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         name="leave_reason"
@@ -635,7 +660,7 @@ export default function LeavePermissionRequest({
                   <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 dark:border-gray-700 sm:flex-row sm:pt-6">
                     <button
                       type="submit"
-                      className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-xs font-bold text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-500 sm:py-3 sm:text-sm"
+                      className="w-full rounded-lg bg-blue-500 px-4 py-2.5 text-xs font-bold text-white transition duration-200 hover:bg-blue-600 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-blue-500 sm:py-3 sm:text-sm"
                       disabled={loading}
                     >
                       {loading
@@ -687,6 +712,7 @@ export default function LeavePermissionRequest({
                           type="date"
                           name="from_date"
                           value={permissionForm.from_date}
+                          // max={new Date().toISOString().split("T")[0]}
                           onChange={handlePermissionInputChange}
                           className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-xs text-navy-700 transition focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm"
                         />
@@ -699,8 +725,8 @@ export default function LeavePermissionRequest({
                         </label>
                         <div className="flex w-full items-center rounded-lg border-2 border-gray-300 bg-gray-100 px-3 py-2 text-xs font-bold text-navy-700 dark:border-gray-600 dark:bg-navy-600 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
                           {permissionForm.start_time && permissionForm.end_time
-                            ? `2 Hours (Fixed)`
-                            : `2 Hours (Fixed)`}
+                            ? `2 Hours`
+                            : `2 Hours`}
                         </div>
                       </div>
 
@@ -761,7 +787,7 @@ export default function LeavePermissionRequest({
                   <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 dark:border-gray-700 sm:flex-row sm:pt-6">
                     <button
                       type="submit"
-                      className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-xs font-bold text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-500 sm:py-3 sm:text-sm"
+                      className="w-full rounded-lg bg-blue-500 px-4 py-2.5 text-xs font-bold text-white transition duration-200 hover:bg-blue-600 active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-blue-500 sm:py-3 sm:text-sm"
                       disabled={loading}
                     >
                       {loading

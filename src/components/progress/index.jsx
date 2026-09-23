@@ -36,7 +36,7 @@ const Progress = (props) => {
             ? "bg-indigo-500 dark:bg-indigo-400"
             : color === "gray"
             ? "bg-gray-500 dark:bg-gray-400"
-            : "bg-brand-500 dark:bg-brand-400"
+            : "bg-blue-500 dark:bg-brand-400"
         }`}
         style={{ width: `${value}%` }}
       />

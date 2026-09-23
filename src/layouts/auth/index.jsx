@@ -1,6 +1,6 @@
 import Footer from "components/footer/FooterAuthDefault";
 // import authImg from "assets/img/auth/auth.png";
-import authImg from "assets/img/auth/bike.webp";
+import authImg from "assets/img/auth/dsds.webp";
 import { Link, Routes, Route, Navigate } from "react-router-dom";
 import routes from "routes.js";
 import FixedPlugin from "components/fixedPlugin/FixedPlugin";
@@ -24,19 +24,19 @@ export default function Auth() {
         <main className={`mx-auto min-h-screen`}>
           <div className="relative flex">
             <div className="mx-auto flex min-h-full w-full flex-col justify-start pt-12 md:max-w-[75%]  lg:max-w-[1013px] lg:px-8 lg:pt-0 xl:min-h-[100vh] xl:max-w-[1383px] xl:px-0 xl:pl-[70px]">
-              <div className="mb-auto flex flex-col pl-5 pr-5 md:pr-0 md:pl-12 lg:max-w-[48%] lg:pl-0 xl:max-w-full">
-                <div className={`flex items-center h-20 `}>
+              <div className="mb-auto flex flex-col pl-5 pr-5 md:pl-12 md:pr-0 lg:max-w-[48%] lg:pl-0 xl:max-w-full">
+                <div className="flex h-20 items-center justify-center lg:ml-20 lg:justify-start">
                   {/* Normal mode logo */}
                   <img
-                    src="https://www.sportstech.de/media/0c/c2/05/1710858131/logo_%285%29.svg"
+                    src="https://www.sportstech.de/cdn/shop/files/logo__4_59d2ab76-f9f0-4f4f-804d-618913cd4325.svg?v=1775131600&width=212"
                     alt="SportsTech Logo"
-                    className="h-20 w-56 block dark:hidden"
+                    className="block h-20 w-56 dark:hidden"
                   />
                   {/* Dark mode logo (replace with your dark logo URL) */}
                   <img
                     src="/Frame4.png"
                     alt="SportsTech Logo Dark"
-                    className="h-12 w-60 hidden dark:block"
+                    className="hidden h-12 w-60 dark:block"
                   />
                 </div>
                 <Routes>

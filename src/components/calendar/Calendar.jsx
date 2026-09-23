@@ -513,7 +513,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="w-full">
+    <div className="bg-slate-100 w-full rounded-xl p-2 dark:bg-navy-900/40 sm:p-3">
       {/* Calendar Container */}
       <div className="overflow-hidden rounded-lg bg-white shadow-lg dark:bg-navy-800">
         {/* Calendar Header - Responsive */}
@@ -631,24 +631,28 @@ export default function Calendar() {
                     key={index}
                     onClick={() => handleCalendarDayClick(dayObj)}
                     className={`
-                      relative min-h-16 cursor-pointer p-1 transition-all sm:min-h-20 sm:p-2 lg:min-h-24
-                      ${
-                        dayObj.isCurrentMonth
-                          ? "bg-white hover:bg-gray-50 dark:bg-navy-800 dark:hover:bg-navy-700"
-                          : "bg-gray-50 dark:bg-navy-700"
-                      }
-                      ${isTodayCell ? "bg-blue-50 dark:bg-blue-900" : ""}
-                      ${
-                        isSelected(dayObj.date)
-                          ? "bg-blue-500 text-white dark:bg-blue-600"
-                          : ""
-                      }
-                      ${
-                        holiday
-                          ? "border-2 border-blue-500"
-                          : "border border-gray-200 dark:border-gray-700"
-                      }
-                    `}
+            relative h-[64px] cursor-pointer overflow-hidden p-1 transition-all sm:h-20 sm:p-2 lg:h-24 
+            ${
+              dayObj.isCurrentMonth
+                ? "bg-white hover:bg-gray-50 dark:bg-navy-800 dark:hover:bg-navy-700"
+                : "bg-gray-50 dark:bg-navy-700"
+            }
+            ${
+              holiday
+                ? "border-2 border-red-500"
+                : "border border-gray-200 dark:border-gray-700 "
+            }
+            ${
+              isTodayCell
+                ? "dark:!bg-blue-950/40 !border-blue-100 !bg-[#723EC3] text-white dark:!border-blue-800 dark:!bg-[#39B5E0]"
+                : ""
+            }
+            ${
+              isSelected(dayObj.date)
+                ? "text-gray-900"
+                : "text-gray-900 dark:text-white"
+            }
+          `}
                   >
                     <div
                       className={`
@@ -660,7 +664,7 @@ export default function Calendar() {
                         }
                         ${
                           isTodayCell && !isSelected(dayObj.date)
-                            ? "text-blue-600 dark:text-blue-400"
+                            ? "text-black dark:text-blue-400"
                             : ""
                         }
                         ${
@@ -673,11 +677,11 @@ export default function Calendar() {
                       {/* Mobile: Today gets special treatment too */}
                       {isTodayCell ? (
                         <div className="flex flex-col items-center">
-                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400 sm:text-xl lg:text-2xl">
+                          <span className="dark:text-black text-base font-bold text-white sm:text-xl lg:text-2xl">
                             {dayObj.day}
                           </span>
                           <span className="mt-0.5 w-full border-t border-blue-200 sm:mt-1"></span>
-                          <span className="mt-0.5 text-[9px] font-semibold text-blue-600 dark:text-blue-400 sm:mt-1 sm:text-xs">
+                          <span className="dark:text-black mt-0.5 text-[8px] font-semibold text-white sm:mt-1 sm:text-xs">
                             Today
                           </span>
                         </div>
@@ -688,16 +692,20 @@ export default function Calendar() {
 
                     {/* Holiday Badge - Responsive */}
                     {holiday && (
-                      <div className="mt-0.5 flex items-center gap-0.5 truncate rounded bg-blue-500 px-1 py-0.5 text-[9px] text-white sm:mt-1 sm:gap-1 sm:px-2 sm:py-1 sm:text-xs">
+                      <div className="mt-0.5 flex items-start gap-0.5 rounded bg-red-500 px-1 py-0.5 text-[8px] leading-tight text-white sm:mt-1 sm:items-center sm:gap-1 sm:px-2 sm:py-1 sm:text-xs">
                         <FaCalendarAlt className="hidden sm:inline" size={10} />
-                        <span className="truncate">{holiday.holiday_name}</span>
+                        <span className="line-clamp-2 break-words sm:line-clamp-1 sm:truncate">
+                          {holiday.holiday_name}
+                        </span>
                       </div>
                     )}
 
                     {/* Event Badge - Responsive */}
                     {event && !holiday && (
-                      <div className="mt-0.5 truncate rounded bg-blue-500 px-1 py-0.5 text-[9px] text-white sm:mt-1 sm:px-2 sm:py-1 sm:text-xs">
-                        {event.name}
+                      <div className="mt-0.5 rounded bg-blue-500 px-1 py-0.5 text-[8px] leading-tight text-white sm:mt-1 sm:px-2 sm:py-1 sm:text-xs">
+                        <span className="line-clamp-2 break-words sm:line-clamp-1 sm:truncate">
+                          {event.name}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -722,6 +730,8 @@ export default function Calendar() {
               return (
                 <div
                   key={index}
+
+                  
                   onClick={() => handleCalendarDayClick(dayObj)}
                   className="cursor-pointer bg-white p-2 dark:bg-navy-800 sm:p-4"
                 >
@@ -765,12 +775,10 @@ export default function Calendar() {
             })}
           </div>
         )}
-      </div>
 
-      {/* Holidays by Month - Full Width on Mobile */}
-      {holidays.length > 0 && (
-        <div className="mt-4 sm:mt-6">
-          <div className="rounded-lg bg-white p-4 shadow-lg dark:bg-navy-800 sm:p-6">
+        {/* Holidays by Month - Inside the same card */}
+        {holidays.length > 0 && (
+          <div className="border-t border-gray-200 p-4 dark:border-gray-700 sm:p-6">
             {(() => {
               // Group holidays by month
               const monthMap = {};
@@ -952,8 +960,8 @@ export default function Calendar() {
               );
             })()}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Add Holiday Modal - Responsive */}
       {showHolidayModal && (

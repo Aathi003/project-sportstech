@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "components/card";
 import payslipAPI from "services/payslipAPI";
+import configAPI from "services/configAPI";
+import { API_BASE } from "services/apiConfig";
 import { showError, showSuccess } from "utils/toastHelper";
 import { FaFileInvoiceDollar, FaSearch, FaDownload } from "react-icons/fa";
 import { jsPDF } from "jspdf";
@@ -8,30 +10,106 @@ import EmployeeProfileImage from "components/navbar/EmployeeProfileImage";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useAuth } from "../../../contexts/AuthContext";
-
-// Logo URL constant
-const LOGO_URL =
-  "https://www.sportstech.de/media/0c/c2/05/1710858131/logo_%285%29.svg";
+import Logo from "../../../assets/sportstech-logo.png";
 
 // ──────────────────────────────────────────────────
-// Helper: Convert logo SVG URL → white PNG base64 for PDF
-const loadLogoAsWhiteBase64 = (logoUrl) => {
+// Logo URL constant
+// ──────────────────────────────────────────────────
+// const Logo =
+//   "/assets/sportstech-logo.png"; // Replace with your actual logo URL or path
+
+// ──────────────────────────────────────────────────
+// Helper: Load logo as base64 via fetch → blob → FileReader
+// This avoids CORS canvas tainting issues entirely
+// ──────────────────────────────────────────────────
+// const Logo= "https://d267gv22s9468h.cloudfront.net/sportstech-crypto/images/logo.png"
+const getConfigRecord = (data) => {
+  const configSource =
+    data?.data ?? data?.results ?? (Array.isArray(data) ? data : [data]);
+  return Array.isArray(configSource)
+    ? configSource[0] || {}
+    : configSource || {};
+};
+
+const getResolvedFileUrl = (fileUrl) => {
+  if (!fileUrl) return "";
+  if (
+    fileUrl.startsWith("http") ||
+    fileUrl.startsWith("data:") ||
+    fileUrl.startsWith("blob:")
+  ) {
+    return fileUrl;
+  }
+
+  const apiBase = API_BASE?.endsWith("/") ? API_BASE.slice(0, -1) : API_BASE;
+  const originBase = apiBase?.replace(/\/api\/?$/, "") || "";
+  const path = fileUrl.startsWith("/") ? fileUrl : `/${fileUrl}`;
+
+  if (path.startsWith("/media/")) {
+    return `${originBase}${path}`;
+  }
+
+  return `${apiBase}${path}`;
+};
+
+const scaleToFit = (origW, origH, maxWidth, maxHeight) => {
+  let w = origW,
+    h = origH;
+  if (w > maxWidth) {
+    h = (maxWidth / w) * h;
+    w = maxWidth;
+  }
+  if (h > maxHeight) {
+    w = (maxHeight / h) * w;
+    h = maxHeight;
+  }
+  return { w, h };
+};
+
+const imgToDataUrl = (img, origW, origH) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = origW;
+  canvas.height = origH;
+  canvas.getContext("2d").drawImage(img, 0, 0, origW, origH);
+  return canvas.toDataURL("image/png"); // throws SecurityError if canvas is tainted
+};
+
+const loadLogo = (logoSrc = Logo, maxWidth = 200, maxHeight = 60) => {
   return new Promise((resolve) => {
-    fetch(logoUrl)
-      .then((res) => res.blob())
+    const resolveFromImg = (img, origW, origH) => {
+      const { w, h } = scaleToFit(origW, origH, maxWidth, maxHeight);
+      try {
+        resolve({ dataUrl: imgToDataUrl(img, origW, origH), width: w, height: h });
+      } catch {
+        resolve(null);
+      }
+    };
+
+    // Handle data URLs directly — no fetch needed
+    if (logoSrc && logoSrc.startsWith("data:")) {
+      const img = new Image();
+      img.onload = () =>
+        resolveFromImg(img, img.naturalWidth, img.naturalHeight);
+      img.onerror = () => resolve(null);
+      img.src = logoSrc;
+      return;
+    }
+
+    fetch(logoSrc, { headers: { "ngrok-skip-browser-warning": "true" } })
+      .then((res) => {
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.startsWith("image/")) throw new Error("not-image");
+        return res.blob();
+      })
       .then((blob) => {
+        // blob: URL is same-origin — canvas will NOT be tainted
         const blobUrl = URL.createObjectURL(blob);
         const img = new Image();
-        img.crossOrigin = "anonymous";
         img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const scale = 2;
-          canvas.width = (img.naturalWidth || 200) * scale;
-          canvas.height = (img.naturalHeight || 60) * scale;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const origW = img.naturalWidth;
+          const origH = img.naturalHeight;
           URL.revokeObjectURL(blobUrl);
-          resolve(canvas.toDataURL("image/png"));
+          resolveFromImg(img, origW, origH);
         };
         img.onerror = () => {
           URL.revokeObjectURL(blobUrl);
@@ -40,30 +118,25 @@ const loadLogoAsWhiteBase64 = (logoUrl) => {
         img.src = blobUrl;
       })
       .catch(() => {
+        // CORS fallback: crossOrigin + cache-bust
+        // Canvas may be tainted if server has no CORS headers; resolveFromImg handles that
         const img = new Image();
         img.crossOrigin = "anonymous";
-
         img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const scale = 2;
-          canvas.width = (img.naturalWidth || 200) * scale;
-          canvas.height = (img.naturalHeight || 60) * scale;
-          const ctx = canvas.getContext("2d");
-
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          ctx.globalCompositeOperation = "source-in";
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          resolve(canvas.toDataURL("image/png"));
+          const origW = img.naturalWidth || 200;
+          const origH = img.naturalHeight || 60;
+          resolveFromImg(img, origW, origH);
         };
-
         img.onerror = () => resolve(null);
-        img.src = logoUrl;
+        img.src =
+          logoSrc + (logoSrc.includes("?") ? "&" : "?") + "_t=" + Date.now();
       });
   });
 };
-// PDF generation helper (now ASYNC to load logo)
+
+// ──────────────────────────────────────────────────
+// PDF generation helper
+// ──────────────────────────────────────────────────
 const generatePayslipPDF = async (data) => {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth(); // 595
@@ -82,44 +155,31 @@ const generatePayslipPDF = async (data) => {
   doc.setFillColor(...primary);
   doc.rect(0, 0, 595, 110, "F");
 
-  // ── Logo in header ──
+  // ── Logo in header — always use default bundled logo ──
+  let logoData = null;
   try {
-    const logoBase64 = await loadLogoAsWhiteBase64(data.logoUrl || LOGO_URL);
-    if (logoBase64) {
-      const logoW = 140;
-      const logoH = 40;
-      doc.addImage(logoBase64, "PNG", 40, 20, logoW, logoH);
-    } else {
-      // Fallback: draw company name as text (never print a URL)
-      const isUrl =
-        (data.companyName || "").startsWith("http://") ||
-        (data.companyName || "").startsWith("https://");
-      const fallbackName = isUrl
-        ? "SPORTSTECH"
-        : data.companyName || "SPORTSTECH";
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.setFont("times", "bold");
-      doc.text(fallbackName, 40, 60);
-    }
-  } catch {
-    // Fallback: draw company name as text (never print a URL)
-    const isUrl =
-      (data.companyName || "").startsWith("http://") ||
-      (data.companyName || "").startsWith("https://");
-    const fallbackName = isUrl
-      ? "SPORTSTECH"
-      : data.companyName || "SPORTSTECH";
+    logoData = await loadLogo(Logo, 180, 55);
+  } catch (e) {
+    console.error("Failed to load logo for PDF", e);
+  }
+
+  if (logoData?.dataUrl) {
+    doc.addImage(logoData.dataUrl, "PNG", 40, 12, logoData.width, logoData.height);
+  } else {
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.setFont("times", "bold");
-    doc.text(fallbackName, 40, 60);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("SPORTSTECH", 40, 42);
   }
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(data.companyAddress || "Madurai, Tamil Nadu, India", 40, 78);
+  const address =
+    data.companyAddress ||
+    "88/3 ,Melakkal Main road ,Kochadai, Madurai - 625016";
+  const addressLines = doc.splitTextToSize(address, 280);
+  doc.text(addressLines, 42, 62);
 
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
@@ -128,39 +188,31 @@ const generatePayslipPDF = async (data) => {
   });
 
   // ── Employee Details Box ──
-  const empBoxX = 30;
-  const empBoxY = 130;
-  const empBoxW = 535;
-  const empBoxH = 120;
   doc.setFillColor(...light);
-  doc.setDrawColor(214, 234, 248);
-  doc.roundedRect(empBoxX, empBoxY, empBoxW, empBoxH, 8, 8, "FD");
+  doc.setDrawColor(314, 234, 248);
+  doc.roundedRect(40, 130, 515, 110, 8, 8, "FD");
 
   doc.setTextColor(...dark);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("Employee Details :", empBoxX + 16, 150);
+  doc.text("Employee Details :", 50, 150);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const leftX = empBoxX + 16;
-  const rightX = empBoxX + 270;
+  const leftX = 50;
+  const rightX = 300;
   let y = 172;
-  const padY = 24;
 
   doc.text(`Employee Name: ${data.employeeName || "-"}`, leftX, y);
-  doc.text(`Employee Code: ${data.employeeId || "-"}`, leftX, y + padY);
-  doc.text(`Department: ${data.department || "-"}`, leftX, y + padY * 2);
-  doc.text(`Designation: ${data.designation || "-"}`, leftX, y + padY * 3);
+  doc.text(`Employee Code: ${data.employeeId || "-"}`, leftX, y + 18);
+  doc.text(`Department: ${data.department || "-"}`, leftX, y + 36);
+  doc.text(`Designation: ${data.designation || "-"}`, leftX, y + 54);
 
-  doc.text(`UAN: ${data.uan || "-"}`, rightX, y);
-  doc.text(`ESIC No: ${data.esic || "-"}`, rightX, y + padY);
-  doc.text(`Absent Days: ${data.absent_days || "-"}`, rightX, y + padY * 2);
-  doc.text(
-    `Total Working Days: ${data.total_days || "-"}`,
-    rightX,
-    y + padY * 3
-  );
+  doc.text(`UAN:  ${data.uan || "-"}`, rightX, y);
+  doc.text(`ESIC No:   ${data.esic || "-"}`, rightX, y + 18);
+  doc.text(`Absent Days: ${data.absent_days || "-"}`, rightX, y + 36);
+  doc.text(`Total Working Days: ${data.total_days || "-"}`, rightX, y + 54);
+  // console.log("00000000000", data.absent_days);
 
   // ── Table Header ──
   const tableTop = 260;
@@ -182,10 +234,11 @@ const generatePayslipPDF = async (data) => {
 
   // ── Table Rows ──
   const rows = [
-    ["Basic Salary", data.basic || 0, "PF", data.pf || 0],
-    ["HRA", data.hra || 0, "ESI", data.esi || 0],
-    ["Special Allowance", data.special || 0, "Professional Tax", data.pt || 0],
-    ["Bonus", data.bonus || 0, "LOP", data.lop_amount || 0],
+    ["Gross Salary", data.gross || 0, "PF", data.pf || 0],
+    ["Basic Salary", data.basic || 0, "ESI", data.esic_amount || 0],
+    ["HRA", data.hra || 0, "Professional Tax", data.pt || 0],
+    ["Special Allowance", data.special || 0, "LOP", data.lop_amount || 0],
+    ["Bonus", data.bonus || 0, "Permission LOP", data.permission_lop || 0],
   ];
 
   let rowY = tableTop + 25;
@@ -196,7 +249,7 @@ const generatePayslipPDF = async (data) => {
       i % 2 === 0 ? 249 : 255,
       i % 2 === 0 ? 249 : 255
     );
-    doc.rect(40, rowY, 515, 28, "F");
+    doc.rect(60, rowY, 515, 28, "F");
 
     doc.setTextColor(...dark);
     doc.setFontSize(10);
@@ -228,44 +281,44 @@ const generatePayslipPDF = async (data) => {
   rowY += 28;
 
   // ── Salary Summary Boxes ──
-  const summaryBoxY = rowY + 25;
+  const boxY = rowY + 25;
 
   doc.setFillColor(...green);
   doc.setDrawColor(...greenBorder);
-  doc.roundedRect(40, summaryBoxY, 240, 70, 8, 8, "FD");
+  doc.roundedRect(40, boxY, 240, 70, 8, 8, "FD");
 
   doc.setTextColor(...dark);
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Salary Summary", 55, summaryBoxY + 20);
+  doc.text("Salary Summary", 55, boxY + 20);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text(
     `Gross Salary: Rs. ${Number(data.gross || 0).toLocaleString()}`,
     55,
-    summaryBoxY + 40
+    boxY + 40
   );
   doc.text(
     `Total Deductions: Rs. ${Number(
       data.totalDeductions || 0
     ).toLocaleString()}`,
     55,
-    summaryBoxY + 56
+    boxY + 56
   );
 
   doc.setFillColor(...red);
   doc.setDrawColor(...redBorder);
-  doc.roundedRect(310, summaryBoxY, 245, 70, 8, 8, "FD");
+  doc.roundedRect(310, boxY, 245, 70, 8, 8, "FD");
 
   doc.setTextColor(...dark);
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Net Salary", 325, summaryBoxY + 20);
+  doc.text("Net Salary", 325, boxY + 20);
   doc.setFontSize(20);
   doc.text(
     `Rs. ${Number(data.netSalary || 0).toLocaleString()}`,
     325,
-    summaryBoxY + 52
+    boxY + 52
   );
 
   // ── Footer ──
@@ -275,7 +328,8 @@ const generatePayslipPDF = async (data) => {
   doc.setTextColor(...gray);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`This is a system-generated payslip. Generated on: ${new Date().toLocaleDateString()}`, 40, 745);
+  const footerText = `This is a system-generated payslip. Generated on: ${new Date().toLocaleDateString()}`;
+  doc.text(footerText, 40, 745);
 
   const fileName = `Payslip_${(data.employeeName || "employee").replace(
     /\s+/g,
@@ -293,6 +347,7 @@ const Payslip = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
+  // Month starts as null (empty) instead of new Date()
   const [selectedMonthDate, setSelectedMonthDate] = useState(null);
 
   const [loading, setLoading] = useState(false);
@@ -300,7 +355,44 @@ const Payslip = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
   const [payslipData, setPayslipData] = useState(null);
+  const [companyName, setCompanyName] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyLogo, setCompanyLogo] = useState("");
 
+
+  // Pre-cached logo base64 for PDF generation
+  const [logoBase64, setLogoBase64] = useState(null);
+  const [logoData, setLogoData] = useState(null); // { base64, width, height }
+
+  useEffect(() => {
+    configAPI.getConfig(
+      async (data) => {
+        const configData = getConfigRecord(data);
+        setCompanyName(configData.company_name || "");
+        setCompanyAddress(configData.company_address || "");
+        setCompanyLogo(configData.company_logo || "");
+
+        // Fetch logo as base64 for PDF
+        let logoUrl = configData.company_logo || "";
+        if (logoUrl) {
+          logoUrl = getResolvedFileUrl(logoUrl);
+          const logo = await loadLogo(logoUrl);
+          // If API logo fetch fails (CORS on /media/), fall back to bundled asset
+          setLogoData(logo || (await loadLogo(Logo)));
+        } else {
+          setLogoData(await loadLogo(Logo));
+        }
+      },
+      () => {
+        setCompanyName("");
+        setCompanyAddress("");
+        setCompanyLogo("");
+        setLogoData(null);
+      }
+    );
+  }, []);
+
+  // Auth context
   const { user, isSuperAdmin } = useAuth();
 
   // Fetch employees on mount
@@ -312,12 +404,23 @@ const Payslip = () => {
         else if (data?.results) empList = data.results;
         else if (data?.data) empList = data.data;
 
+        // Filter employees based on superadmin status
         let filtered = empList;
         if (!isSuperAdmin) {
+          // Only show logged-in user
           filtered = empList.filter((emp) => String(emp.id) === String(user));
         }
         setEmployees(filtered);
         setFilteredEmployees(filtered);
+
+        // Auto-select for non-super admin
+        if (!isSuperAdmin && filtered.length === 1) {
+          const emp = filtered[0];
+          setSelectedEmployee(emp);
+          const name = `${emp.first_name || ""} ${emp.last_name || ""}`.trim();
+          setSelectedEmployeeName(name || emp.user_name || emp.emp_code);
+          setSearchTerm(name || emp.user_name || emp.emp_code);
+        }
       },
       (error) => {
         console.error("Failed to load employees:", error);
@@ -355,6 +458,8 @@ const Payslip = () => {
     setSelectedEmployeeName(name || emp.user_name || emp.emp_code);
     setSearchTerm(name || emp.user_name || emp.emp_code);
     setShowDropdown(false);
+
+    // Clear previous payslip when a new employee is selected
     setPayslipData(null);
   };
 
@@ -367,40 +472,25 @@ const Payslip = () => {
       showError("Please select a month");
       return;
     }
-    // Stricter check for ID
-    if (
-      selectedEmployee.id === undefined ||
-      selectedEmployee.id === null ||
-      selectedEmployee.id === "" ||
-      isNaN(Number(selectedEmployee.id))
-    ) {
-      showError("Employee ID not found");
-      return;
-    }
-    // Check for salary amount (basic_salary or gross_salary)
-    if (
-      !selectedEmployee.basic_salary &&
-      !selectedEmployee.gross_salary &&
-      !selectedEmployee.salary &&
-      !selectedEmployee.salary_amount
-    ) {
-      showError("Salary amount not apply for this employee");
-      return;
-    }
 
+    // Custom month logic: Jan 26–Feb 25, Feb 26–Mar 25, etc.
     const today = new Date();
     const selYear = selectedMonthDate.getFullYear();
-    const selMonth = selectedMonthDate.getMonth();
+    const selMonth = selectedMonthDate.getMonth(); // 0=Jan
 
+    // Calculate start/end for selected custom month
     let startDate, endDate;
     if (selMonth === 0) {
+      // January: Jan 26–Feb 25
       startDate = new Date(selYear, 0, 26);
       endDate = new Date(selYear, 1, 25);
     } else {
+      // Other months: Feb 26–Mar 25, Mar 26–Apr 25, etc.
       startDate = new Date(selYear, selMonth, 26);
       endDate = new Date(selYear, selMonth + 1, 25);
     }
 
+    // Prevent payslip for future months
     if (today < startDate) {
       showError("Cannot generate payslip for future months.");
       return;
@@ -422,9 +512,11 @@ const Payslip = () => {
         if (response?.status && response?.data) {
           const d = response.data;
 
+          // Build unified payslipData for both screen and PDF
           const unified = {
-            companyName: LOGO_URL,
-            companyAddress: "Madurai, Tamil Nadu, India",
+            companyName: companyName || "SPORTSTECH",
+            companyAddress: companyAddress || "-",
+            companyLogo: companyLogo || "-",
             month:
               d.payslip_date ||
               `${startDate.toLocaleString("default", {
@@ -437,16 +529,17 @@ const Payslip = () => {
             employeeId: d.emp_code || "",
             department: d.department || "",
             designation: d.designation || "",
-            uan: d.uan_number || "",
-            esic: d.esic_number || "",
+            uan: d.uan_number || "-",
+            esic: d.esic_number || "-",
             absent_days: d.absent_days || 0,
             bank: d.bank_account || "",
+            gross: Number(d.gross_salary) || 0,
             basic: Number(d.basic_salary) || 0,
             hra: Number(d.hra) || 0,
             special: Number(d.special_allowance) || 0,
             bonus: Number(d.bonus) || 0,
-            pf: Number(d.pf) || 0,
-            esi: Number(d.esi) || 0,
+            pf: Number(d.pf_amount) || 0,
+            esic_amount: Number(d.esic_amount) || 0,
             pt: Number(d.professional_tax) || 0,
             tds: Number(d.tds) || 0,
             gross: Number(d.gross_salary) || 0,
@@ -454,6 +547,7 @@ const Payslip = () => {
             netSalary: Number(d.net_salary) || 0,
             present_days: d.present_days || 0,
             lop_amount: Number(d.lop_amount) || 0,
+            permission_lop: Number(d.permission_lop) || 0,
             from_date: d.from_date || "",
             to_date: d.to_date || "",
             total_days: d.total_days || 0,
@@ -471,11 +565,16 @@ const Payslip = () => {
     );
   };
 
-  const handleDownloadPDF = async () => {
+  // Download handler — passes pre-cached logoBase64 into PDF generator
+  const handleDownloadPDF = async (logoUrl) => {
     if (!payslipData) return;
     setDownloading(true);
     try {
-      await generatePayslipPDF(payslipData);
+      await generatePayslipPDF({
+        ...payslipData,
+        logoUrl,
+        companyLogo: logoData || logoUrl,
+      });
     } catch (err) {
       console.error("PDF generation failed:", err);
       showError("Failed to download PDF");
@@ -591,7 +690,7 @@ const Payslip = () => {
               className={`w-full rounded-lg px-6 py-2.5 font-bold text-white transition duration-200 ${
                 loading || !selectedEmployee || !selectedMonthDate
                   ? "cursor-not-allowed bg-gray-400"
-                  : "bg-brand-500 hover:bg-brand-600 active:bg-brand-700"
+                  : "bg-blue-500 hover:bg-blue-600 active:bg-brand-700"
               }`}
             >
               {loading ? (
@@ -650,13 +749,13 @@ const Payslip = () => {
         <Card extra="mt-4 w-full overflow-hidden">
           {/* Header Bar */}
           <div className="flex flex-col gap-3 bg-[#1F4E78] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-            <div>
+            <div className="py-2">
               <img
-                src={LOGO_URL}
+                src={companyLogo || Logo}
                 alt={payslipData.companyName}
-                className="h-8 brightness-0 invert sm:h-10"
+                className="ml-2 h-14 sm:h-16"
               />
-              <p className="mt-1 text-xs text-blue-200 sm:text-sm">
+              <p className="ml-2 mt-2 text-xs text-blue-100 sm:text-sm">
                 {payslipData.companyAddress}
               </p>
             </div>
@@ -665,7 +764,7 @@ const Payslip = () => {
                 Payslip - {payslipData.month}
               </p>
               <button
-                onClick={handleDownloadPDF}
+                onClick={() => handleDownloadPDF(companyLogo)}
                 disabled={downloading}
                 className="mt-1 inline-flex items-center gap-2 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/30 disabled:opacity-50 sm:text-sm"
               >
@@ -728,7 +827,7 @@ const Payslip = () => {
                     Department
                   </span>
                   <p className="font-semibold text-navy-700 dark:text-white">
-                    {payslipData.department}
+                    {payslipData.department || "-"}
                   </p>
                 </div>
                 <div>
@@ -736,13 +835,13 @@ const Payslip = () => {
                     Designation
                   </span>
                   <p className="font-semibold text-navy-700 dark:text-white">
-                    {payslipData.designation}
+                    {payslipData.designation || "-"}
                   </p>
                 </div>
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">UAN</span>
                   <p className="font-semibold text-navy-700 dark:text-white">
-                    {payslipData.uan}
+                    {payslipData.uan || "-"}
                   </p>
                 </div>
                 <div>
@@ -750,15 +849,16 @@ const Payslip = () => {
                     ESIC No
                   </span>
                   <p className="font-semibold text-navy-700 dark:text-white">
-                    {payslipData.esic}
+                    {payslipData.esic || "-"}
                   </p>
                 </div>
+
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">
                     Total Working Days
                   </span>
                   <p className="font-semibold text-navy-700 dark:text-white">
-                    {payslipData.total_days}
+                    {payslipData.total_days || "-"}
                   </p>
                 </div>
                 <div>
@@ -766,7 +866,7 @@ const Payslip = () => {
                     Total Present Days
                   </span>
                   <p className="font-semibold text-navy-700 dark:text-white">
-                    {payslipData.present_days}
+                    {payslipData.present_days || "-"}
                   </p>
                 </div>
                 <div>
@@ -810,10 +910,10 @@ const Payslip = () => {
                 <tbody>
                   <tr className="bg-gray-50 dark:bg-navy-700">
                     <td className="px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
-                      Basic Salary
+                      Gross Salary
                     </td>
                     <td className="px-2 py-2 text-right text-xs font-semibold text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
-                      ₹ {payslipData.basic?.toLocaleString()}
+                      ₹ {payslipData.gross?.toLocaleString()}
                     </td>
                     <td className="px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
                       PF
@@ -824,21 +924,21 @@ const Payslip = () => {
                   </tr>
                   <tr className="bg-white dark:bg-navy-800">
                     <td className="px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
-                      HRA
+                      Basic Salary
                     </td>
                     <td className="px-2 py-2 text-right text-xs font-semibold text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
-                      ₹ {payslipData.hra?.toLocaleString()}
+                      ₹ {payslipData.basic?.toLocaleString()}
                     </td>
                     <td className="px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
                       ESI
                     </td>
                     <td className="px-2 py-2 text-right text-xs font-semibold text-red-500 sm:px-4 sm:py-2.5 sm:text-sm">
-                      ₹ {payslipData.esi?.toLocaleString()}
+                      ₹ {payslipData.esic_amount?.toLocaleString()}
                     </td>
                   </tr>
                   <tr className="bg-gray-50 dark:bg-navy-700">
                     <td className="whitespace-nowrap px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
-                      Special Allow.
+                      Special Allowance
                     </td>
                     <td className="px-2 py-2 text-right text-xs font-semibold text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
                       ₹ {payslipData.special?.toLocaleString()}
@@ -862,6 +962,23 @@ const Payslip = () => {
                     </td>
                     <td className="px-2 py-2 text-right text-xs font-semibold text-red-500 sm:px-4 sm:py-2.5 sm:text-sm">
                       ₹ {payslipData.lop_amount?.toLocaleString()}
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-50 dark:bg-navy-700">
+                    <td className="px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
+                      HRA
+                    </td>
+                    <td className="px-2 py-2 text-right text-xs font-semibold text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
+                      ₹ {payslipData.hra?.toLocaleString()}
+                    </td>
+                    <td className="px-2 py-2 text-xs text-navy-700 dark:text-white sm:px-4 sm:py-2.5 sm:text-sm">
+                      Permission LOP
+                    </td>
+                    <td className="px-2 py-2 text-right text-xs font-semibold text-red-500 sm:px-4 sm:py-2.5 sm:text-sm">
+                      ₹{" "}
+                      {payslipData.permission_lop
+                        ? Number(payslipData.permission_lop).toLocaleString()
+                        : 0}
                     </td>
                   </tr>
                   {/* Totals Row */}

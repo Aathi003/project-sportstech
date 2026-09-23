@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import InputField from "components/fields/InputField";
-import { FcGoogle } from "react-icons/fc";
 import Checkbox from "components/checkbox";
 import authAPI from "services/authAPI";
 import { useAuth } from "contexts/AuthContext";
@@ -28,65 +27,38 @@ export default function SignIn() {
       (response) => {
         if (response?.access || response?.access_token) {
           const token = response.access || response.access_token;
-          // Remove 'Bearer ' prefix if already present to store clean token
           const cleanToken = token.startsWith("Bearer ")
             ? token.substring(7)
             : token;
-          // Set auth state from API response
+
+          // Pass latecoming from API response into context
           login(
             response.user_id,
             cleanToken,
             response.user_name,
-            response.is_super_admin
+            response.is_super_admin,
+            response.late_coming,
+            response.employee_id,
+            response.emp_id,
+            response.is_wfh_enabled
           );
 
-          // Determine user role and store in localStorage
-          let userRole = "User"; // Default role
-          if (
-            response.user?.is_super_admin === "true" ||
-            response.user?.is_super_admin === true
-          ) {
-            userRole = "Admin";
-          } else if (
-            response.user?.role === "Admin" ||
-            response.user?.role?.role_name === "Admin"
-          ) {
-            userRole = "Admin";
-          } else if (response.user?.role?.role_name) {
-            userRole = response.user.role.role_name;
-          } else if (response.user?.role) {
-            userRole = response.user.role;
-          }
+          showSuccess("Logged in successfully");
 
-          // Role-based redirect
-          if (
-            response.user?.is_super_admin === "true" ||
-            response.user?.is_super_admin === true
-          ) {
-            navigate("/admin/dashboard");
-          } else if (
-            response.user?.role === "Admin" ||
-            response.user?.role?.role_name === "Admin"
-          ) {
-            navigate("/admin/dashboard");
-          } else {
-            navigate("/admin/dashboard");
-          }
+          const isSuperAdminUser =
+            response.is_super_admin === true ||
+            String(response.is_super_admin).toLowerCase() === "true";
+
+          navigate(
+            isSuperAdminUser ? "/admin/dashboard" : "/employee/dashboard"
+          );
         } else {
           showError("Invalid login response");
         }
-
         setLoading(false);
       },
-      (error) => {
-        // Custom error message for invalid credentials
-        let errorMessage = error?.message || error?.detail || "Login failed";
-        if (
-          errorMessage.toLowerCase().includes("email is incorrect") ||
-          errorMessage.toLowerCase().includes("invalid credentials")
-        ) {
-          errorMessage = "Email or password is incorrect";
-        }
+      (err) => {
+        const errorMessage = err?.message || err?.detail || "Login failed";
         setError(errorMessage);
         showError(errorMessage);
         setLoading(false);
@@ -95,10 +67,9 @@ export default function SignIn() {
   };
 
   return (
-    <div className=" mb-16 flex h-full w-full items-center justify-center px-2 md:mx-0 md:px-0 lg:mb-10 lg:items-center lg:justify-start">
-      {/* Sign in section */}
-      <div className="mt-[10vh] w-full max-w-full flex-col items-center md:pl-4 lg:pl-0 xl:max-w-[420px]">
-        <h4 className="ml-15 mb-2.5 text-3xl font-bold text-navy-700 dark:text-white">
+    <div className="mb-16 flex h-full w-full items-center justify-center px-2 md:mx-0 md:px-0 lg:mb-10 lg:items-center lg:justify-start">
+      <div className="mt-[10vh] flex w-full max-w-full flex-col items-center justify-center md:pl-4 lg:pl-0 xl:max-w-[420px]">
+        <h4 className="mb-2.5 text-3xl font-bold text-navy-700 dark:text-white">
           Log In
         </h4>
         <p className="mb-9 text-base text-gray-600">
@@ -106,13 +77,12 @@ export default function SignIn() {
         </p>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500 bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+          <div className="mb-4 w-full rounded-lg border border-red-500 bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="w-full">
-          {/* Email */}
           <div className="mb-3">
             <InputField
               variant="auth"
@@ -125,7 +95,6 @@ export default function SignIn() {
             />
           </div>
 
-          {/* Password */}
           <div className="mb-3">
             <InputField
               variant="auth"
@@ -140,7 +109,6 @@ export default function SignIn() {
             />
           </div>
 
-          {/* Checkbox */}
           <div className="mb-4 flex items-center justify-between px-2">
             <div className="flex items-center">
               <Checkbox
@@ -156,7 +124,7 @@ export default function SignIn() {
           <button
             type="submit"
             disabled={loading}
-            className="linear mt-2 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 disabled:opacity-50 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
+            className="linear mt-2 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-blue-600 active:bg-brand-700 disabled:opacity-50 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

@@ -1,28 +1,39 @@
-import axios from 'axios';
-import { showSuccess } from 'utils/toastHelper';
+import axios from "axios";
+import { showSuccess } from "utils/toastHelper";
 
-const API_BASE_URL = 'https://hrm.sportstech.team/api/';
-
+import { API_BASE } from "services/apiConfig";
 const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-    },
+  baseURL: API_BASE,
+  headers: {
+    "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
+  },
 });
 
 // Add JWT token to requests
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-        // Remove 'Bearer ' prefix if already present to avoid duplication
-        const cleanToken = token.startsWith('Bearer') ? token.substring(7) : token;
-        config.headers.Authorization = `Bearer ${cleanToken}`;
-    } else {
-        console.warn('⚠️ No token found in localStorage');
-    }
-    return config;
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    // Remove 'Bearer ' prefix if already present to avoid duplication
+    const cleanToken = token.startsWith("Bearer") ? token.substring(7) : token;
+    config.headers.Authorization = `Bearer ${cleanToken}`;
+  } else {
+    console.warn("⚠️No token found in localStorage");
+  }
+  return config;
 });
+
+// Redirect to login immediately when token expires
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.clear();
+      window.location.href = "/auth/sign-in";
+    }
+    return Promise.reject(error);
+  }
+);
 
 /**
  * Extract error message from various error response formats
@@ -30,67 +41,74 @@ api.interceptors.request.use((config) => {
  * @returns {string|object} - Formatted error message or object with detailed errors
  */
 const getErrorMessage = (error) => {
-    if (!error) return 'An unknown error occurred';
+  if (!error) return "An unknown error occurred";
 
-    // Handle axios error response
-    if (error.response) {
-        const { status, data } = error.response;
+  // Handle axios error response
+  if (error.response) {
+    const { status, data } = error.response;
 
-        // Check for various error message formats
-        if (data?.detail) return data.detail;
-        if (data?.message && typeof data.message === 'string') return data.message;
+    // Check for various error message formats
+    if (data?.detail) return data.detail;
+    if (data?.message && typeof data.message === "string") return data.message;
 
-        // Handle field-specific errors directly in data (e.g., {serial_number: ["error message"]})
-        if (data && typeof data === 'object' && !Array.isArray(data) && !data?.error && !data?.errors) {
-            const fieldErrors = [];
-            Object.entries(data).forEach(([field, messages]) => {
-                if (Array.isArray(messages) && messages.length > 0) {
-                    // Extract first message from array
-                    fieldErrors.push(messages[0]);
-                } else if (typeof messages === 'string' && messages) {
-                    fieldErrors.push(messages);
-                }
-            });
-            if (fieldErrors.length > 0) {
-                return fieldErrors[0]; // Return first error message
-            }
+    // Handle field-specific errors directly in data (e.g., {serial_number: ["error message"]})
+    if (
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      !data?.error &&
+      !data?.errors
+    ) {
+      const fieldErrors = [];
+      Object.entries(data).forEach(([field, messages]) => {
+        if (Array.isArray(messages) && messages.length > 0) {
+          // Extract first message from array
+          fieldErrors.push(messages[0]);
+        } else if (typeof messages === "string" && messages) {
+          fieldErrors.push(messages);
         }
-
-        // Handle error with details object (field-specific errors)
-        if (data?.error && data?.details) {
-            const fieldErrors = [];
-            Object.entries(data.details).forEach(([field, messages]) => {
-                if (Array.isArray(messages)) {
-                    fieldErrors.push(`${field}: ${messages.join(', ')}`);
-                } else {
-                    fieldErrors.push(`${field}: ${messages}`);
-                }
-            });
-            // Return combined message with main error and field details
-            const detailsText = fieldErrors.length > 0 ? ' - ' + fieldErrors.join(' | ') : '';
-            return data.error + detailsText;
-        }
-
-        if (data?.error) return data.error;
-        if (data?.errors) {
-            // Handle array of errors
-            if (Array.isArray(data.errors)) {
-                return data.errors.map(e => e.message || e).join(', ');
-            }
-            // Handle object of errors
-            return Object.entries(data.errors)
-                .map(([key, value]) => `${key}: ${value}`)
-                .join(', ');
-        }
-
-        // If no specific error message found, return detailed status message
-        return `Error ${status}: ${JSON.stringify(data) || 'Request failed'}`;
+      });
+      if (fieldErrors.length > 0) {
+        return fieldErrors[0]; // Return first error message
+      }
     }
 
-    // Network error or no response
-    if (error.message) return error.message;
+    // Handle error with details object (field-specific errors)
+    if (data?.error && data?.details) {
+      const fieldErrors = [];
+      Object.entries(data.details).forEach(([field, messages]) => {
+        if (Array.isArray(messages)) {
+          fieldErrors.push(`${field}: ${messages.join(", ")}`);
+        } else {
+          fieldErrors.push(`${field}: ${messages}`);
+        }
+      });
+      // Return combined message with main error and field details
+      const detailsText =
+        fieldErrors.length > 0 ? " - " + fieldErrors.join(" | ") : "";
+      return data.error + detailsText;
+    }
 
-    return 'An unknown error occurred';
+    if (data?.error) return data.error;
+    if (data?.errors) {
+      // Handle array of errors
+      if (Array.isArray(data.errors)) {
+        return data.errors.map((e) => e.message || e).join(", ");
+      }
+      // Handle object of errors
+      return Object.entries(data.errors)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ");
+    }
+
+    // If no specific error message found, return detailed status message
+    return `Error ${status}: ${JSON.stringify(data) || "Request failed"}`;
+  }
+
+  // Network error or no response
+  if (error.message) return error.message;
+
+  return "An unknown error occurred";
 };
 
 /**
@@ -100,30 +118,28 @@ const getErrorMessage = (error) => {
  * @param {function} onError - Callback on error
  */
 export const apiGet = async (endpoint, onSuccess, onError) => {
-    try {
-        const response = await api.get(endpoint);
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-      
-
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.get(endpoint);
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
 };
 
 /**
@@ -134,34 +150,33 @@ export const apiGet = async (endpoint, onSuccess, onError) => {
  * @param {function} onError - Callback on error
  */
 export const apiPost = async (endpoint, data, onSuccess, onError) => {
-    try {
-        const response = await api.post(endpoint, data);
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        // Show success toast for 200/201 responses
-        const successMessage = response.data?.message || response.data?.detail || 'Success!';
-        showSuccess(successMessage);
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-       
-
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            // If no error callback provided, return error object so caller can handle it
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.post(endpoint, data);
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    // Show success toast for 200/201 responses
+    const successMessage =
+      response.data?.message || response.data?.detail || "Success!";
+    showSuccess(successMessage);
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      // If no error callback provided, return error object so caller can handle it
+      return { error: errorObject };
+    }
+  }
 };
 
 /**
@@ -172,30 +187,28 @@ export const apiPost = async (endpoint, data, onSuccess, onError) => {
  * @param {function} onError - Callback on error
  */
 export const apiUpdate = async (endpoint, data, onSuccess, onError) => {
-    try {
-        const response = await api.put(endpoint, data);
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-      
-
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.put(endpoint, data);
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
 };
 
 /**
@@ -206,29 +219,59 @@ export const apiUpdate = async (endpoint, data, onSuccess, onError) => {
  * @param {function} onError - Callback on error
  */
 export const apiPatch = async (endpoint, data, onSuccess, onError) => {
-    try {
-        const response = await api.patch(endpoint, data);
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.patch(endpoint, data);
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
+};
+
+/**
+ * Generic PATCH request handler without request payload
+ * @param {string} endpoint - API endpoint
+ * @param {function} onSuccess - Callback on success
+ * @param {function} onError - Callback on error
+ */
+export const apiPatchNoPayload = async (endpoint, onSuccess, onError) => {
+  try {
+    const response = await api.patch(endpoint);
+    if (onSuccess) {
+      onSuccess(response.data);
+    }
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
 };
 
 /**
@@ -238,30 +281,28 @@ export const apiPatch = async (endpoint, data, onSuccess, onError) => {
  * @param {function} onError - Callback on error
  */
 export const apiDelete = async (endpoint, onSuccess, onError) => {
-    try {
-        const response = await api.delete(endpoint);
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-   
-
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.delete(endpoint);
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
 };
 
 /**
@@ -272,35 +313,34 @@ export const apiDelete = async (endpoint, onSuccess, onError) => {
  * @param {function} onError - Callback on error
  */
 export const apiPostFormData = async (endpoint, data, onSuccess, onError) => {
-    try {
-        const response = await api.post(endpoint, data, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        // Note: Toast is handled by the calling component (e.g., AddEmployeeModal)
-        // to avoid duplicate toasts
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-      
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.post(endpoint, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    // Note: Toast is handled by the calling component (e.g., AddEmployeeModal)
+    // to avoid duplicate toasts
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
 };
 
 /**
@@ -311,35 +351,34 @@ export const apiPostFormData = async (endpoint, data, onSuccess, onError) => {
  * @param {function} onError - Callback on error
  */
 export const apiPutFormData = async (endpoint, data, onSuccess, onError) => {
-    try {
-        const response = await api.put(endpoint, data, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-        // Note: Toast is handled by the calling component (e.g., AddEmployeeModal)
-        // to avoid duplicate toasts
-        return response.data;
-    } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        const errorStatus = error.response?.status;
-
-
-        const errorObject = {
-            message: errorMessage,
-            status: errorStatus,
-            data: error.response?.data,
-        };
-
-        if (onError) {
-            onError(errorObject);
-        } else {
-            return { error: errorObject };
-        }
+  try {
+    const response = await api.put(endpoint, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    if (onSuccess) {
+      onSuccess(response.data);
     }
+    // Note: Toast is handled by the calling component (e.g., AddEmployeeModal)
+    // to avoid duplicate toasts
+    return response.data;
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    const errorStatus = error.response?.status;
+
+    const errorObject = {
+      message: errorMessage,
+      status: errorStatus,
+      data: error.response?.data,
+    };
+
+    if (onError) {
+      onError(errorObject);
+    } else {
+      return { error: errorObject };
+    }
+  }
 };
 
 export default api;

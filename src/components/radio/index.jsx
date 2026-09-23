@@ -6,8 +6,8 @@ const Radio = (props) => {
       name={name}
       type="radio"
       className={`before:contet[""] relative h-5 w-5 cursor-pointer appearance-none rounded-full
-       border !border-gray-300 transition-all duration-[0.2s] before:absolute before:top-[3px]
-       before:left-[50%] before:h-3 before:w-3 before:translate-x-[-50%] before:rounded-full before:transition-all before:duration-[0.2s] dark:!border-gray-800
+       border !border-gray-300 transition-all duration-[0.2s] before:absolute before:left-[50%]
+       before:top-[3px] before:h-3 before:w-3 before:translate-x-[-50%] before:rounded-full before:transition-all before:duration-[0.2s] dark:!border-gray-800
        ${
          color === "red"
            ? "checked:!border-red-500 checked:before:!bg-red-500 dark:checked:!border-red-400 dark:checked:before:!bg-red-400"
@@ -37,7 +37,7 @@ const Radio = (props) => {
            ? "checked:!border-indigo-500 checked:before:!bg-indigo-500 dark:checked:!border-indigo-400 dark:checked:before:!bg-indigo-400"
            : color === "gray"
            ? "checked:!border-gray-500 checked:before:!bg-gray-500 dark:checked:!border-gray-400 dark:checked:before:!bg-gray-400"
-           : "checked:!border-brand-500 checked:before:!bg-brand-500 dark:checked:!border-brand-400 dark:checked:before:!bg-brand-400"
+           : "checked:!border-brand-500 checked:before:!bg-blue-500 dark:checked:!border-brand-400 dark:checked:before:!bg-brand-400"
        } `}
       {...rest}
     />

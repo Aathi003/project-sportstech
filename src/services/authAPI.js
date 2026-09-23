@@ -1,4 +1,4 @@
-import { apiPost, apiGet } from './apiHelper';
+import { apiPost, apiGet } from './apiHelper_fixed';
 
 /**
  * Authentication API endpoints

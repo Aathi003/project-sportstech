@@ -17,9 +17,25 @@ import { toast } from "react-toastify";
 
 const Navbar = (props) => {
   const { onOpenSidenav, onCloseSidenav, sidebarOpen, brandText } = props;
-  const [darkmode, setDarkmode] = React.useState(false);
+  const [darkmode, setDarkmode] = React.useState(
+    document.body.classList.contains("dark")
+  );
   const { user, name, isSuperAdmin, logout, email } = useAuth();
   const navigate = useNavigate();
+
+  // Load dark mode preference from localStorage on mount
+  React.useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode");
+    if (savedDarkMode !== null) {
+      const isDarkMode = savedDarkMode === "true";
+      setDarkmode(isDarkMode);
+      if (isDarkMode) {
+        document.body.classList.add("dark");
+      } else {
+        document.body.classList.remove("dark");
+      }
+    }
+  }, []);
 
   // Determine user info for display
   let userId = user || "";
@@ -38,7 +54,7 @@ const Navbar = (props) => {
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
       <div className="ml-[6px]">
-        <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
+        <p className="shrink text-[30px] capitalize text-navy-700 dark:text-white">
           <Link
             to="#"
             className="font-bold capitalize hover:text-navy-700 dark:hover:text-white"
@@ -73,16 +89,18 @@ const Navbar = (props) => {
           <FiAlignJustify className="h-5 w-5" />
         </span>
         {/* start Notification */}
-        
+
         <div
           className="cursor-pointer text-gray-600"
           onClick={() => {
             if (darkmode) {
               document.body.classList.remove("dark");
               setDarkmode(false);
+              localStorage.setItem("darkMode", "false");
             } else {
               document.body.classList.add("dark");
               setDarkmode(true);
+              localStorage.setItem("darkMode", "true");
             }
           }}
         >
@@ -95,7 +113,7 @@ const Navbar = (props) => {
         {/* Profile & Dropdown */}
         <Dropdown
           button={<EmployeeProfileImage employeeId={userId} />}
-          children={
+          children={({ close }) => (
             <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
               <div className="p-4">
                 {isSuperAdmin ? (
@@ -129,28 +147,34 @@ const Navbar = (props) => {
               </div>
               <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
 
-              <div className="flex flex-col p-4">
+              <div className="flex flex-col p-4 ">
                 <Link
-                  to="/admin/profile"
+                  to={`${isSuperAdmin ? "/admin" : "/employee"}/employee`}
+                  state={{ openProfileEdit: true }}
+                  onClick={close}
                   className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
                 >
                   Profile Settings
                 </Link>
                 <Link
-                  to="/admin/calendar"
+                  to={`${isSuperAdmin ? "/admin" : "/employee"}/calendar`}
+                  onClick={close}
                   className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
                 >
-                  Calender
+                  Calendar
                 </Link>
                 <button
-                  onClick={handleLogout}
+                  onClick={() => {
+                    close();
+                    handleLogout();
+                  }}
                   className="mt-3 w-full cursor-pointer border-none bg-none p-0 text-left text-sm font-medium text-red-500 transition duration-150 ease-out hover:text-red-500 hover:ease-in"
                 >
                   Log Out
                 </button>
               </div>
             </div>
-          }
+          )}
           classNames={"py-2 top-8 -left-[180px] w-max"}
         />
       </div>

@@ -82,7 +82,7 @@ const ProfileBanner = () => {
           <div
             className="absolute flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 dark:hidden"
             style={{
-              backgroundImage: `url(https://www.sportstech.de/media/0c/c2/05/1710858131/logo_%285%29.svg)`,
+              backgroundImage: `url(https://www.sportstech.de/cdn/shop/files/logo__4_59d2ab76-f9f0-4f4f-804d-618913cd4325.svg?v=1775131600&width=212)`,
               backgroundSize: "contain",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
@@ -122,10 +122,11 @@ const ProfileBanner = () => {
             {/* View Documents Button */}
             <button
               onClick={handleViewDocuments}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-blue-600 shadow-md transition hover:bg-blue-50 dark:bg-navy-700 dark:text-blue-400 dark:hover:bg-navy-600"
+              className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 shadow-sm transition hover:bg-blue-100 dark:bg-navy-700 dark:text-blue-400 dark:hover:bg-navy-600"
               title="View Documents"
             >
               <FaEye size={16} />
+              <span>View</span>
             </button>
             {/* Edit Profile Button */}
             <button
@@ -193,7 +194,7 @@ const ProfileBanner = () => {
 
       {/* Document Viewer Modal - Same as Employee component */}
       {documentModalOpen && employee && (
-        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-3 backdrop-blur-sm sm:p-4">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-3 backdrop-blur-sm backdrop-blur-sm sm:p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl dark:bg-navy-800 sm:rounded-2xl">
             {/* Header - Responsive */}
             <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-navy-800 sm:px-6 sm:py-4">
@@ -304,7 +305,7 @@ const ProfileBanner = () => {
                         href={fullUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full whitespace-nowrap rounded-lg bg-brand-500 px-3 py-1.5 text-center text-xs font-medium text-white transition hover:bg-brand-600 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                        className="w-full whitespace-nowrap rounded-lg bg-blue-500 px-3 py-1.5 text-center text-xs font-medium text-white transition hover:bg-blue-600 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                       >
                         View/Download
                       </a>

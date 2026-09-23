@@ -17,6 +17,7 @@ export default function Admin(props) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
+  const basePath = isSuperAdmin ? "/admin" : "/employee";
   // Sidebar closed by default on mobile, open on desktop
   const [open, setOpen] = React.useState(window.innerWidth >= 1200);
   const [currentRoute, setCurrentRoute] = React.useState("Dashboard");
@@ -29,43 +30,58 @@ export default function Admin(props) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
   React.useEffect(() => {
-    getActiveRoute(routes);
-  }, [location.pathname]);
+    setCurrentRoute(getActiveRoute(routes));
+  }, [location.pathname, basePath]);
 
   // Restrict navigation to only allowed routes
   React.useEffect(() => {
-    const allowedPaths = routes.map((r) => `/admin/${r.path.toLowerCase()}`);
-    // Restrict /admin/assets to only super admins
-    if (location.pathname.toLowerCase() === "/admin/assets" && !isSuperAdmin) {
-      navigate("/admin/Dashboard", { replace: true });
-    } else if (!allowedPaths.includes(location.pathname.toLowerCase())) {
-      navigate("/admin/Dashboard", { replace: true });
+    const pathname = location.pathname.toLowerCase();
+    const isOnEmployeeRoot = pathname.startsWith("/employee");
+    const isOnAdminRoot = pathname.startsWith("/admin");
+
+    if (isSuperAdmin && isOnEmployeeRoot) {
+      navigate("/admin/dashboard", { replace: true });
+      return;
     }
-  }, [location.pathname, isSuperAdmin]);
+
+    if (!isSuperAdmin && isOnAdminRoot) {
+      navigate("/employee/dashboard", { replace: true });
+      return;
+    }
+
+    const role = isSuperAdmin ? "super_admin" : "admin";
+    const allowedPaths = routes
+      .filter((route) => !route.roles || route.roles.includes(role))
+      .map((route) => `${basePath}/${route.path.toLowerCase()}`);
+
+    if (
+      pathname !== basePath &&
+      pathname !== `${basePath}/` &&
+      !allowedPaths.includes(pathname)
+    ) {
+      navigate(`${basePath}/dashboard`, { replace: true });
+    }
+  }, [location.pathname, isSuperAdmin, basePath, navigate]);
 
   const getActiveRoute = (routes) => {
-    let activeRoute = "Dashboard";
+    const pathname = location.pathname.toLowerCase();
     for (let i = 0; i < routes.length; i++) {
-      if (
-        window.location.href.indexOf(
-          routes[i].layout + "/" + routes[i].path
-        ) !== -1
-      ) {
-        setCurrentRoute(routes[i].name);
+      const routePath = `${basePath}/${routes[i].path}`.toLowerCase();
+      if (pathname === routePath || pathname.startsWith(`${routePath}/`)) {
+        return routes[i].name;
       }
     }
-    return activeRoute;
+    return "Dashboard";
   };
   const getActiveNavbar = (routes) => {
-    let activeNavbar = false;
+    const pathname = location.pathname.toLowerCase();
     for (let i = 0; i < routes.length; i++) {
-      if (
-        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-      ) {
+      const routePath = `${basePath}/${routes[i].path}`.toLowerCase();
+      if (pathname === routePath || pathname.startsWith(`${routePath}/`)) {
         return routes[i].secondary;
       }
     }
-    return activeNavbar;
+    return false;
   };
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
@@ -104,10 +120,7 @@ export default function Admin(props) {
               <Routes>
                 {getRoutes(routes)}
 
-                <Route
-                  path="/"
-                  element={<Navigate to="/admin/default" replace />}
-                />
+                <Route path="/" element={<Navigate to="dashboard" replace />} />
               </Routes>
             </div>
             <div className="p-3">

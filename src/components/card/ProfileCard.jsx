@@ -91,10 +91,11 @@ const ProfileCard = () => {
         <div className="absolute right-3 top-3 flex gap-2">
           <button
             onClick={() => setShowDocumentModal(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition hover:bg-white/40"
+            className="flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm transition hover:bg-white/40"
             title="View Documents"
           >
             <FaEye size={14} />
+            <span>View</span>
           </button>
           <button
             onClick={() => setShowEditModal(true)}
@@ -200,7 +201,7 @@ const ProfileCard = () => {
 
       {/* Documents Modal */}
       {showDocumentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-3 backdrop-blur-sm backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
             {/* Header */}
             <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
@@ -269,9 +270,7 @@ const ProfileCard = () => {
                   >
                     <div className="flex flex-1 items-center gap-3 sm:gap-4">
                       <div className={`${doc.bgColor} rounded-lg p-2 sm:p-3`}>
-                        <div
-                          className={`${doc.iconColor} text-xl sm:text-2xl`}
-                        >
+                        <div className={`${doc.iconColor} text-xl sm:text-2xl`}>
                           <FaEye />
                         </div>
                       </div>
@@ -300,7 +299,7 @@ const ProfileCard = () => {
                         href={fullUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full whitespace-nowrap rounded-lg bg-brand-500 px-3 py-1.5 text-center text-xs font-medium text-white transition hover:bg-brand-600 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                        className="w-full whitespace-nowrap rounded-lg bg-blue-500 px-3 py-1.5 text-center text-xs font-medium text-white transition hover:bg-blue-600 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                       >
                         View/Download
                       </a>

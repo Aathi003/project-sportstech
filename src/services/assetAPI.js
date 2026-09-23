@@ -57,6 +57,15 @@ const assetAPI = {
     apiDelete(`/asset/delete/${assetId}/`, onSuccess, onError),
 
   /**
+   * Delete asset picture by asset ID
+   * @param {number} assetId - Asset ID
+   * @param {function} onSuccess - Success callback
+   * @param {function} onError - Error callback
+   */
+  deleteAssetPicture: (assetId, onSuccess, onError) =>
+    apiDelete(`/asset/delete-picture/${assetId}/`, onSuccess, onError),
+
+  /**
    * Get asset categories
    * @param {function} onSuccess - Success callback
    * @param {function} onError - Error callback

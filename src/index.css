@@ -24,6 +24,86 @@ input.defaultCheckbox::before {
 	transform: translate(-50%, 0px);
 } 
 
-input:checked.defaultCheckbox::before { 
+input:checked.defaultCheckbox::before {
 	opacity: 1;
+}
+
+/* ===== SweetAlert2 Premium Styles ===== */
+.swal-premium-popup {
+  border-radius: 20px !important;
+  padding: 32px 28px 24px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  max-width: 420px !important;
+}
+
+.swal-actions {
+  gap: 12px !important;
+  margin-top: 24px !important;
+}
+
+.swal-deactivate-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  padding: 10px 24px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s, transform 0.15s !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+}
+.swal-deactivate-btn:hover {
+  opacity: 0.9 !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal-activate-btn {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  padding: 10px 24px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s, transform 0.15s !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35) !important;
+}
+.swal-activate-btn:hover {
+  opacity: 0.9 !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal-cancel-btn {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  padding: 10px 24px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+.swal-cancel-btn:hover {
+  background: #e2e8f0 !important;
+}
+
+.swal-delete-btn {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  padding: 10px 24px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s, transform 0.15s !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35) !important;
+}
+.swal-delete-btn:hover {
+  opacity: 0.9 !important;
+  transform: translateY(-1px) !important;
 }

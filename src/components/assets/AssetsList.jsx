@@ -27,6 +27,31 @@ import { showSuccess, showError } from "utils/toastHelper";
 import { MdEdit } from "react-icons/md";
 import { GiSchoolBag } from "react-icons/gi";
 
+const itemsPerPage = 10;
+
+const getAssetIcon = (assetTypeName) => {
+  if (!assetTypeName) return FaDesktop;
+  const name = assetTypeName.toLowerCase();
+  if (name.includes("laptop")) return FaLaptop;
+  if (name.includes("desktop") || name.includes("computer")) return FaDesktop;
+  if (name.includes("mobile") || name.includes("phone")) return FaMobile;
+  if (name.includes("tablet")) return FaTabletAlt;
+  if (name.includes("keyboard")) return FaKeyboard;
+  if (name.includes("mouse")) return FaMouse;
+  if (name.includes("headphone") || name.includes("headset"))
+    return FaHeadphones;
+  if (name.includes("printer")) return FaPrint;
+  if (name.includes("server")) return FaServer;
+  if (
+    name.includes("network") ||
+    name.includes("router") ||
+    name.includes("switch")
+  )
+    return FaNetworkWired;
+  if (name.includes("bag")) return GiSchoolBag;
+  return FaDesktop;
+};
+
 export default function AssetsList() {
   const [assets, setAssets] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -44,10 +69,13 @@ export default function AssetsList() {
   const [variants, setVariants] = useState([]);
   const [isEditingInModal, setIsEditingInModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
+  const [assetFormErrors, setAssetFormErrors] = useState({});
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [newAssetData, setNewAssetData] = useState({
-    pictureFile: null, // File object
-    picturePreview: "", // Preview URL
-    picture: "", // For backend URL (edit mode)
+    pictureFile: null,
+    picturePreview: "",
+    picture: "",
     asset_type: "",
     brand: "",
     model: "",
@@ -58,8 +86,6 @@ export default function AssetsList() {
     assigned_to: "",
     assigned_date: "",
   });
-  const [assetFormErrors, setAssetFormErrors] = useState({});
-  const itemsPerPage = 10;
 
   useEffect(() => {
     loadAssets();
@@ -71,34 +97,31 @@ export default function AssetsList() {
     loadEmployees();
   }, []);
 
-  // Function to get appropriate icon based on asset type
-  const getAssetIcon = (assetTypeName) => {
-    if (!assetTypeName) return FaLaptop;
+  // Close employee dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".employee-dropdown-container")) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    const type = assetTypeName.toLowerCase();
-
-    if (type.includes("laptop") || type.includes("notebook")) return FaLaptop;
-    if (type.includes("bag")) return GiSchoolBag;
-
-    if (
-      type.includes("desktop") ||
-      type.includes("computer") ||
-      type.includes("pc")
-    )
-      return FaDesktop;
-    if (type.includes("mobile") || type.includes("phone")) return FaMobile;
-
-    // Default icon
-    return FaLaptop;
-  };
+  const filteredEmployees = employees.filter((emp) => {
+    if (!employeeSearchTerm) return true;
+    const term = employeeSearchTerm.toLowerCase();
+    const name = (
+      emp.user_name || `${emp.first_name || ""} ${emp.last_name || ""}`.trim()
+    ).toLowerCase();
+    return name.includes(term);
+  });
 
   const loadAssets = () => {
     setLoading(true);
     assetAPI.getAllAssets(
       (data) => {
         let assetsArray = [];
-
-        // Handle multiple response formats
         if (Array.isArray(data)) {
           assetsArray = data;
         } else if (data?.results && Array.isArray(data.results)) {
@@ -108,7 +131,6 @@ export default function AssetsList() {
         } else if (data?.assets && Array.isArray(data.assets)) {
           assetsArray = data.assets;
         }
-
         setAssets(assetsArray);
         setLoading(false);
       },
@@ -165,6 +187,7 @@ export default function AssetsList() {
       );
     }
   };
+
   const loadModels = () => {
     if (assetAPI.getModels) {
       assetAPI.getModels(
@@ -213,7 +236,6 @@ export default function AssetsList() {
         setEmployees(employeesArray);
       },
       (error) => {
-        // Fallback to all employees if active employees endpoint fails
         employeeAPI.getAllEmployees(
           (data) => {
             let employeesArray = [];
@@ -238,28 +260,19 @@ export default function AssetsList() {
 
   // Filter assets based on search and category
   const filteredAssets = assets.filter((asset) => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      // Category (asset type)
-      asset?.asset_type_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      // Details (brand, model, variant)
-      asset?.brand_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset?.model_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset?.variant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      // Serial Number
-      asset?.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      // Assign Name (employee name or ID)
-      asset?.assigned_to_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      !searchTerm ||
+      asset?.asset_type_name?.toLowerCase().includes(term) ||
+      asset?.brand_name?.toLowerCase().includes(term) ||
+      asset?.model_name?.toLowerCase().includes(term) ||
+      asset?.variant_name?.toLowerCase().includes(term) ||
+      asset?.serial_number?.toLowerCase().includes(term) ||
+      asset?.assigned_to_name?.toLowerCase().includes(term) ||
       (asset?.assigned_to
-        ? String(asset.assigned_to)
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
+        ? String(asset.assigned_to).toLowerCase().includes(term)
         : false) ||
-      // Location
-      asset?.floor_location?.toLowerCase().includes(searchTerm.toLowerCase());
+      asset?.floor_location?.toLowerCase().includes(term);
 
     const matchesCategory =
       filterCategory === "all" ||
@@ -274,6 +287,7 @@ export default function AssetsList() {
     startIndex,
     startIndex + itemsPerPage
   );
+
   const handleDeleteAsset = (assetId) => {
     Swal.fire({
       title: "Delete Asset?",
@@ -292,9 +306,7 @@ export default function AssetsList() {
             loadAssets();
           },
           (error) => {
-            // Try to extract error message from various possible locations
             let errorMessage = "Failed to delete asset";
-
             if (error?.message) {
               errorMessage = error.message;
             } else if (error?.detail) {
@@ -306,7 +318,6 @@ export default function AssetsList() {
             } else if (typeof error === "string") {
               errorMessage = error;
             }
-
             showError(errorMessage);
           }
         );
@@ -322,6 +333,7 @@ export default function AssetsList() {
   const handleEditAsset = (asset) => {
     setIsEditingInModal(true);
     setSelectedAsset(asset);
+    setAssetFormErrors({});
     setNewAssetData({
       pictureFile: null,
       picturePreview: asset.picture || "",
@@ -336,12 +348,32 @@ export default function AssetsList() {
       assigned_to: asset.assigned_to || "",
       assigned_date: asset.assigned_date || "",
     });
+
+    // Set employee search term for the dropdown
+    if (asset.assigned_to) {
+      const emp = employees.find(
+        (e) => (e.id || e.employee_id) == asset.assigned_to
+      );
+      if (emp) {
+        setEmployeeSearchTerm(
+          emp.user_name ||
+            `${emp.first_name || ""} ${emp.last_name || ""}`.trim()
+        );
+      } else {
+        setEmployeeSearchTerm("");
+      }
+    } else {
+      setEmployeeSearchTerm("");
+    }
+
     setShowAddModal(true);
   };
 
   const handleAddAsset = () => {
     setIsEditingInModal(false);
     setSelectedAsset(null);
+    setAssetFormErrors({});
+    setEmployeeSearchTerm("");
     setNewAssetData({
       pictureFile: null,
       picturePreview: "",
@@ -369,12 +401,47 @@ export default function AssetsList() {
       picturePreview: previewUrl,
     }));
   };
+
+  const handleRemoveImage = () => {
+    const clearLocal = () => {
+      if (
+        newAssetData.picturePreview &&
+        newAssetData.picturePreview.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(newAssetData.picturePreview);
+      }
+      setNewAssetData((prev) => ({
+        ...prev,
+        pictureFile: null,
+        picturePreview: "",
+        picture: "",
+      }));
+    };
+
+    // If editing an existing asset that has a saved picture on the server, call the delete API
+    if (isEditingInModal && selectedAsset && newAssetData.picture) {
+      const assetId = selectedAsset.assetid || selectedAsset.id;
+      assetAPI.deleteAssetPicture(
+        assetId,
+        () => {
+          clearLocal();
+          // showSuccess("Asset picture deleted successfully");
+        },
+        (err) => {
+          showError(err?.message || "Failed to delete asset picture");
+          clearLocal(); // Still clear local even if server fails
+        }
+      );
+    } else {
+      // For new assets or if no saved picture exists, just clear locally
+      clearLocal();
+    }
+  };
+
   const handleSaveAsset = () => {
     const errors = {};
     if (!newAssetData.asset_type) errors.asset_type = "Asset type is required";
     if (!String(newAssetData.brand).trim()) errors.brand = "Brand is required";
-    if (!newAssetData.model) errors.model = "Model is required";
-    if (!newAssetData.variant) errors.variant = "Variant is required";
     if (!newAssetData.purchase_date)
       errors.purchase_date = "Purchase date is required";
     if (!newAssetData.serial_number)
@@ -407,7 +474,6 @@ export default function AssetsList() {
     setLoading(true);
 
     if (isEditingInModal && selectedAsset) {
-      // Update existing asset
       const assetId = selectedAsset.assetid || selectedAsset.id;
       assetAPI.updateAsset(
         assetId,
@@ -445,7 +511,6 @@ export default function AssetsList() {
         }
       );
     } else {
-      // Create new asset
       assetAPI.createAsset(
         formData,
         () => {
@@ -484,8 +549,6 @@ export default function AssetsList() {
 
   return (
     <div className="w-full">
-      {/* Header */}
-
       {/* Filters */}
       <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-4 shadow-lg dark:bg-navy-800 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -569,10 +632,15 @@ export default function AssetsList() {
                         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 sm:h-10 sm:w-10">
                           {asset?.picture &&
                           typeof asset.picture === "string" &&
-                          asset.picture.startsWith("http") ? (
+                          (asset.picture.startsWith("http") ||
+                            asset.picture.startsWith("/")) ? (
                             <img
-                              src={asset.picture}
-                              alt={asset.picture || "Asset"}
+                              src={
+                                asset.picture.startsWith("http")
+                                  ? asset.picture
+                                  : `${window.location.origin}${asset.picture}`
+                              }
+                              alt={asset.asset_type_name || "Asset"}
                               className="h-8 w-8 rounded-lg object-cover sm:h-10 sm:w-10"
                               onError={(e) => {
                                 e.target.onerror = null;
@@ -595,21 +663,21 @@ export default function AssetsList() {
                       <div className="space-y-0.5">
                         <p className="dark:text-white">
                           <strong>Brand : </strong>
-                          {asset.brand_name}
+                          {asset.brand_name || "  -"}
                         </p>
                         <p className="dark:text-white">
                           <strong>Model : </strong>
-                          {asset.model_name}
+                          {asset.model_name || "  -"}
                         </p>
                         <p className="dark:text-white">
-                          <strong>Varient : </strong>
-                          {asset.variant_name}
+                          <strong>Variant : </strong>
+                          {asset.variant_name || "  -"}
                         </p>
                       </div>
                     </td>
                     <td className="px-3 py-3 text-xs text-gray-700 dark:text-gray-300 sm:px-4 sm:py-4 sm:text-sm">
                       <span className="whitespace-nowrap">
-                        {asset.serial_number || "N/A"}
+                        {asset.serial_number || "-"}
                       </span>
                     </td>
                     <td className="px-3 py-3 font-mono text-xs text-gray-700 dark:text-gray-300 sm:px-4 sm:py-4 sm:text-sm">
@@ -631,7 +699,6 @@ export default function AssetsList() {
                             </span>
                           );
                         }
-                        // Gender-based profile image
                         let profileImg = maleProfile;
                         if (
                           emp.gender &&
@@ -667,9 +734,10 @@ export default function AssetsList() {
                         >
                           <MdEdit size={18} className="sm:h-5 sm:w-5" />
                         </button>
-
                         <button
-                          onClick={() => handleDeleteAsset(asset.assetid)}
+                          onClick={() =>
+                            handleDeleteAsset(asset.assetid || asset.id)
+                          }
                           className="rounded-lg p-1.5 text-red-600 transition hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900 sm:p-2"
                           title="Delete"
                         >
@@ -697,7 +765,7 @@ export default function AssetsList() {
 
       {/* Details Modal */}
       {showDetailsModal && selectedAsset && (
-        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm backdrop-blur-sm">
           <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-navy-800">
             {/* Modal Header */}
             <div className="sticky top-0 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-navy-800">
@@ -725,7 +793,14 @@ export default function AssetsList() {
                     {selectedAsset.asset_type_name}
                   </p>
                 </div>
-
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Brand
+                  </label>
+                  <p className="mt-1 text-gray-900 dark:text-white">
+                    {selectedAsset.brand_name}
+                  </p>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Model
@@ -734,7 +809,6 @@ export default function AssetsList() {
                     {selectedAsset.model_name}
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Variant
@@ -743,22 +817,20 @@ export default function AssetsList() {
                     {selectedAsset.variant_name}
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Purchase Date
                   </label>
                   <p className="mt-1 text-gray-900 dark:text-white">
-                    {selectedAsset.purchase_date}
+                    {selectedAsset.purchase_date || "-"}
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Serial Number
                   </label>
                   <p className="mt-1 text-gray-900 dark:text-white">
-                    {selectedAsset.serial_number}
+                    {selectedAsset.serial_number || "-"}
                   </p>
                 </div>
                 <div>
@@ -766,12 +838,12 @@ export default function AssetsList() {
                     Floor Location
                   </label>
                   <p className="mt-1 font-mono text-gray-900 dark:text-white">
-                    {selectedAsset.floor_location}
+                    {selectedAsset.floor_location || "-"}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Assign to Employee
+                    Assigned to Employee
                   </label>
                   <p className="mt-1 text-gray-900 dark:text-white">
                     {selectedAsset.assigned_to
@@ -790,7 +862,7 @@ export default function AssetsList() {
                             profileImg = femaleProfile;
                           }
                           const empName =
-                            emp.name ||
+                            emp.user_name ||
                             (emp.first_name && emp.last_name
                               ? `${emp.first_name} ${emp.last_name}`
                               : emp.first_name || "Unknown");
@@ -799,9 +871,7 @@ export default function AssetsList() {
                               <img
                                 src={profileImg}
                                 alt={
-                                  emp.gender === "female"
-                                    ? femaleProfile
-                                    : maleProfile
+                                  emp.gender === "female" ? "Female" : "Male"
                                 }
                                 className="inline-block h-6 w-6 rounded-full border border-gray-300 object-cover dark:border-gray-600"
                                 style={{ background: "#fff" }}
@@ -818,7 +888,7 @@ export default function AssetsList() {
                     Assigned Date
                   </label>
                   <p className="mt-1 text-gray-900 dark:text-white">
-                    {selectedAsset.assigned_date}
+                    {selectedAsset.assigned_date || "-"}
                   </p>
                 </div>
               </div>
@@ -837,9 +907,9 @@ export default function AssetsList() {
         </div>
       )}
 
-      {/* Add Asset Modal */}
+      {/* Add/Edit Asset Modal */}
       {showAddModal && (
-        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm backdrop-blur-sm">
           <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-navy-800">
             {/* Modal Header */}
             <div className="sticky top-0 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-navy-800">
@@ -875,20 +945,7 @@ export default function AssetsList() {
                         className="mx-auto max-h-40 rounded-lg"
                       />
                       <button
-                        onClick={() => {
-                          if (
-                            newAssetData.picturePreview &&
-                            newAssetData.picturePreview.startsWith("blob:")
-                          ) {
-                            URL.revokeObjectURL(newAssetData.picturePreview);
-                          }
-                          setNewAssetData((prev) => ({
-                            ...prev,
-                            pictureFile: null,
-                            picturePreview: "",
-                            picture: "",
-                          }));
-                        }}
+                        onClick={handleRemoveImage}
                         className="mt-2 text-sm text-red-600 hover:text-red-800"
                       >
                         Remove Image
@@ -968,6 +1025,7 @@ export default function AssetsList() {
                       setNewAssetData({
                         ...newAssetData,
                         brand: e.target.value,
+                        model: "",
                       });
                       setAssetFormErrors((prev) => ({
                         ...prev,
@@ -997,7 +1055,7 @@ export default function AssetsList() {
                 {/* Model */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Model <span className="font-bold text-red-600">*</span>
+                    Model
                   </label>
                   <select
                     value={newAssetData.model}
@@ -1019,7 +1077,10 @@ export default function AssetsList() {
                   >
                     <option value="">-- Select Model --</option>
                     {models
-                      .filter((model) => model.brand == newAssetData.brand)
+                      .filter(
+                        (model) =>
+                          String(model.brand) === String(newAssetData.brand)
+                      )
                       .map((model) => (
                         <option key={model.modelid} value={model.modelid}>
                           {model.model_name}
@@ -1036,7 +1097,7 @@ export default function AssetsList() {
                 {/* Variant */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Variant <span className="font-bold text-red-600">*</span>
+                    Variant
                   </label>
                   <select
                     value={newAssetData.variant}
@@ -1170,52 +1231,78 @@ export default function AssetsList() {
                   )}
                 </div>
 
-                {/* Assigned Employee (Optional) */}
-                <div>
+                {/* Assigned Employee (Searchable Dropdown) */}
+                <div className="employee-dropdown-container">
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Assign to Employee (Optional)
                   </label>
-                  <select
-                    value={newAssetData.assigned_to}
-                    onChange={(e) => {
-                      setNewAssetData({
-                        ...newAssetData,
-                        assigned_to: e.target.value,
-                      });
-                      setAssetFormErrors((prev) => ({
-                        ...prev,
-                        assigned_to: undefined,
-                      }));
-                    }}
-                    className={`w-full rounded-lg border ${
-                      assetFormErrors.assigned_to
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } bg-white px-4 py-2 text-gray-700 outline-none transition focus:border-blue-500 dark:border-gray-600 dark:bg-navy-700 dark:text-white`}
-                  >
-                    <option value="">-- Choose Employee --</option>
-                    {employees.map((emp) => (
-                      <option
-                        key={emp.id || emp.user_name}
-                        value={emp.id || emp.user_name}
-                      >
-                        {emp.user_name ||
-                          (emp.first_name && emp.last_name
-                            ? `${emp.first_name} ${emp.last_name}`
-                            : emp.first_name)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={employeeSearchTerm || ""}
+                      onChange={(e) => {
+                        setEmployeeSearchTerm(e.target.value);
+                        setShowEmployeeDropdown(true);
+                        if (!e.target.value.trim()) {
+                          setNewAssetData({
+                            ...newAssetData,
+                            assigned_to: "",
+                          });
+                        }
+                      }}
+                      onFocus={() => setShowEmployeeDropdown(true)}
+                      placeholder="Search employee..."
+                      className={`w-full rounded-lg border ${
+                        assetFormErrors.assigned_to
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } bg-white px-4 py-2 text-gray-700 outline-none transition focus:border-blue-500 dark:border-gray-600 dark:bg-navy-700 dark:text-white`}
+                    />
+                    {showEmployeeDropdown && (
+                      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-navy-700">
+                        {filteredEmployees.length > 0 ? (
+                          filteredEmployees.map((emp) => (
+                            <button
+                              key={emp.id || emp.user_name}
+                              type="button"
+                              onClick={() => {
+                                setNewAssetData({
+                                  ...newAssetData,
+                                  assigned_to: emp.id || emp.user_name,
+                                });
+                                setEmployeeSearchTerm(
+                                  emp.user_name ||
+                                    `${emp.first_name || ""} ${
+                                      emp.last_name || ""
+                                    }`.trim()
+                                );
+                                setShowEmployeeDropdown(false);
+                                setAssetFormErrors((prev) => ({
+                                  ...prev,
+                                  assigned_to: undefined,
+                                }));
+                              }}
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50 dark:hover:bg-navy-600"
+                            >
+                              <span className="text-sm font-semibold text-navy-700 dark:text-white">
+                                {emp.user_name ||
+                                  `${emp.first_name || ""} ${
+                                    emp.last_name || ""
+                                  }`.trim()}
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            No employees found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {newAssetData.assigned_to && (
                     <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                      Selected:{" "}
-                      {(() => {
-                        const emp = employees.find(
-                          (e) =>
-                            (e.id || e.employee_id) == newAssetData.assigned_to
-                        );
-                        return emp ? emp.user_name : "Unknown";
-                      })()}
+                      Selected: {employeeSearchTerm}
                     </p>
                   )}
                 </div>
@@ -1228,6 +1315,7 @@ export default function AssetsList() {
                   <input
                     type="date"
                     value={newAssetData.assigned_date}
+                    // max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => {
                       setNewAssetData({
                         ...newAssetData,

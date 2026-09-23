@@ -8,15 +8,16 @@ import {
 import { MdBarChart } from "react-icons/md";
 import dashboardAPI from "services/dashboard";
 
-
 const WeeklyRevenue = () => {
-  // Initialize with default static data as fallback
   const [chartData, setChartData] = useState(barChartDataWeeklyRevenue);
-  const [chartOptions, setChartOptions] = useState(barChartOptionsWeeklyRevenue);
+  const [chartOptions, setChartOptions] = useState(
+    barChartOptionsWeeklyRevenue
+  );
   const [loading, setLoading] = useState(true);
 
-  // Get super admin and user id from localStorage
-  const isSuperAdmin = localStorage.getItem("is_super_admin") === "true" || localStorage.getItem("is_super_admin") === true;
+  const isSuperAdmin =
+    localStorage.getItem("is_super_admin") === "true" ||
+    localStorage.getItem("is_super_admin") === true;
   const userId = localStorage.getItem("user_id");
 
   useEffect(() => {
@@ -26,8 +27,6 @@ const WeeklyRevenue = () => {
 
   const loadWeeklyRevenueData = () => {
     setLoading(true);
-    // If super admin, show all employees' weekly leaves
-    // If not, show only this user's weekly leaves
     dashboardAPI.getWeeklyRevenueChart(
       (res) => {
         let payload = res?.data?.weekly_trend || [];
@@ -37,15 +36,21 @@ const WeeklyRevenue = () => {
           return;
         }
 
-        // If not super admin, filter each day's details to only this user
         if (!isSuperAdmin && userId) {
           payload = payload.map((item) => {
-            // Filter leave details
-            let approved_leave_details = Array.isArray(item.approved_leave_details)
-              ? item.approved_leave_details.filter((emp) => String(emp.id) === String(userId))
+            let approved_leave_details = Array.isArray(
+              item.approved_leave_details
+            )
+              ? item.approved_leave_details.filter(
+                  (emp) => String(emp.id) === String(userId)
+                )
               : [];
-            let approved_permission_details = Array.isArray(item.approved_permission_details)
-              ? item.approved_permission_details.filter((emp) => String(emp.id) === String(userId))
+            let approved_permission_details = Array.isArray(
+              item.approved_permission_details
+            )
+              ? item.approved_permission_details.filter(
+                  (emp) => String(emp.id) === String(userId)
+                )
               : [];
             return {
               ...item,
@@ -57,34 +62,49 @@ const WeeklyRevenue = () => {
           });
         }
 
-        // Extract categories (days) and data from API response
         const categories = payload.map((item) => item.day || "");
 
-        // Leave data
-        const leaveApprovedData = payload.map((item) => item.Leave_Approved || 0);
+        const leaveApprovedData = payload.map(
+          (item) => item.Leave_Approved || 0
+        );
 
-        // Permission data
-        const permissionApprovedData = payload.map((item) => item.Permission_Approved || 0);
+        const permissionApprovedData = payload.map(
+          (item) => item.Permission_Approved || 0
+        );
 
-        // Leave details info (employee names and departments)
         const approvedLeaveDetailsInfo = payload.map((item) => {
-          if (Array.isArray(item.approved_leave_details) && item.approved_leave_details.length > 0) {
+          if (
+            Array.isArray(item.approved_leave_details) &&
+            item.approved_leave_details.length > 0
+          ) {
             return item.approved_leave_details
-              .map((emp) => `${emp.name} <span style="color:#ff4444">(${emp.dept})</span>`)
+              .map(
+                (emp) =>
+                  `${emp.name} <span style="color:#ff4444">(${emp.dept})</span>`
+              )
               .join("<br/>");
           } else {
-            return isSuperAdmin ? "No employees on leave" : "No leave for you this day";
+            return isSuperAdmin
+              ? "No employees on leave"
+              : "No leave for you this day";
           }
         });
 
-        // Permission details info (employee names and departments)
         const approvedPermissionDetailsInfo = payload.map((item) => {
-          if (Array.isArray(item.approved_permission_details) && item.approved_permission_details.length > 0) {
+          if (
+            Array.isArray(item.approved_permission_details) &&
+            item.approved_permission_details.length > 0
+          ) {
             return item.approved_permission_details
-              .map((emp) => `${emp.name} <span style="color:#0088ff">(${emp.dept})</span>`)
+              .map(
+                (emp) =>
+                  `${emp.name} <span style="color:#0088ff">(${emp.dept})</span>`
+              )
               .join("<br/>");
           } else {
-            return isSuperAdmin ? "No employees on permission" : "No permission for you this day";
+            return isSuperAdmin
+              ? "No employees on permission"
+              : "No permission for you this day";
           }
         });
 
@@ -103,12 +123,19 @@ const WeeklyRevenue = () => {
 
         setChartData(newChartData);
 
-        // Update categories in chart options AND format tooltip
         setChartOptions((prev) => ({
           ...prev,
           xaxis: {
             ...prev.xaxis,
             categories: categories,
+          },
+          plotOptions: {
+            ...prev.plotOptions,
+            bar: {
+              ...prev.plotOptions?.bar,
+              columnWidth: "20%",
+              borderRadius: 5,
+            },
           },
           tooltip: {
             ...prev.tooltip,
@@ -119,7 +146,6 @@ const WeeklyRevenue = () => {
               const day = w.globals.labels[dataPointIndex];
 
               if (seriesIndex === 0) {
-                // Leave Approved - show count and employee names
                 return (
                   '<div class="apexcharts-tooltip-title" style="' +
                   paddingStyle +
@@ -138,7 +164,6 @@ const WeeklyRevenue = () => {
                   "</div>"
                 );
               } else if (seriesIndex === 1) {
-                // Permission Approved - show count and employee names
                 return (
                   '<div class="apexcharts-tooltip-title" style="' +
                   paddingStyle +
@@ -157,7 +182,6 @@ const WeeklyRevenue = () => {
                   "</div>"
                 );
               } else if (seriesIndex === 2) {
-                // Hidden series - show both leave and permission details
                 return (
                   '<div class="apexcharts-tooltip-title" style="' +
                   paddingStyle +
@@ -177,7 +201,7 @@ const WeeklyRevenue = () => {
                 );
               }
 
-              return false; // Use default for others
+              return false;
             },
           },
         }));
@@ -194,22 +218,42 @@ const WeeklyRevenue = () => {
   return (
     <Card extra="flex flex-col bg-white w-full rounded-3xl py-6 px-2 text-center">
       <div className="mb-auto flex items-center justify-between px-6">
-        <h2 className="text-lg font-bold text-navy-700 dark:text-white">
+        <h2 className="text-sm md:text-lg lg:text-xl font-bold text-navy-700 dark:text-white">
           Weekly Employees Leaves & Permissions
         </h2>
-        <button className="!linear z-[1] flex items-center justify-center rounded-lg bg-lightPrimary p-2 text-brand-500 !transition !duration-200 hover:bg-gray-100 active:bg-gray-200 dark:bg-navy-700 dark:text-white dark:hover:bg-white/20 dark:active:bg-white/10">
-          <MdBarChart className="h-6 w-6" />
-        </button>
       </div>
 
       <div className="md:mt-16 lg:mt-0">
+        {/* FIXED: removed flex items-center so chart fills full width */}
         <div className="h-[250px] w-full xl:h-[350px]">
           {loading ? (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full w-full items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-brand-500"></div>
             </div>
           ) : (
-            <BarChart chartData={chartData} chartOptions={chartOptions} />
+            (() => {
+              const hasLeave =
+                Array.isArray(chartData) &&
+                chartData[0]?.data?.some((val) => val > 0);
+              const hasPermission =
+                Array.isArray(chartData) &&
+                chartData[1]?.data?.some((val) => val > 0);
+              if (hasLeave || hasPermission) {
+                return (
+                  <BarChart chartData={chartData} chartOptions={chartOptions} />
+                );
+              } else {
+                return (
+                  <div className="flex h-full w-full flex-col items-center justify-center">
+                    {/* <span className="mb-2 text-3xl text-gray-300">😴</span> */}
+                    <p className="text-sm text-gray-500">
+                      No leave or permission records for this week. Enjoy your
+                      work!
+                    </p>
+                  </div>
+                );
+              }
+            })()
           )}
         </div>
       </div>
